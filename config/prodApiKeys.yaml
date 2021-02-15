@@ -1,0 +1,5 @@
+---
+keys:
+  - name: ${ssm:/omni-dw/${self:provider.stage}/api/key/mock-user}
+    usagePlan:
+      name: ${ssm:/omni-dw/${self:provider.stage}/api/usageplan/mock}

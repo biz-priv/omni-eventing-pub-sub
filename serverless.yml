@@ -1,0 +1,70 @@
+service: omni-eventing
+
+provider:
+  name: aws
+  runtime: python3.7
+  versionFunctions: false
+  stage: ${opt:stage, 'dev'}
+  region: us-east-1
+  timeout: 30
+  memorySize: 256
+  
+  deploymentBucket: ${ssm:/omni-dw/${self:provider.stage}/sls/deployment/bucket}
+  
+  role: ${ssm:/omni-dw/${self:provider.stage}/lambda/role}
+  apiName: ${self:service}-api-${self:provider.stage}  
+  vpc:
+    securityGroupIds:
+      - ${ssm:/omni-dw/${self:provider.stage}/lambda/sgId}
+    subnetIds:
+      - ${ssm:/omni-dw/${self:provider.stage}/lambda/subnetA}
+  stackTags:
+    Application: Eventing
+    CreateBy: BizCloudExperts
+    Version: "1.0"
+    Environment: ${self:provider.stage}
+
+custom: 
+  apiKeys: ${file(config/${self:provider.stage}ApiKeys.yaml):keys}
+  serverless-layers:
+    functions:
+      - create-subscription
+      - custom-authorizer
+    dependenciesPath: ./requirements.txt
+  standardResponseHeaders:
+    'Access-Control-Allow-Origin': "'*'"
+    'Access-Control-Allow-Credentials': "'true'"
+    'Access-Control-Allow-Headers': "'*'"
+
+plugins:
+  - serverless-layers
+  - serverless-add-api-key
+  - serverless-plugin-multiple-responses
+  
+package:
+  individually: true
+  exclude:
+  - '**/*'
+  - serverless.yaml
+
+functions:
+  create-subscription: ${file(config/functions/create-subscription.yml):function}
+  custom-authorizer: ${file(config/functions/custom-authorizer.yml):function}
+  
+resources:
+  Resources:
+    BadRequestResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: ACCESS_DENIED
+        ResponseTemplates:
+          application/json: |
+            {
+              "errorDescription":"$context.authorizer.message"
+            }
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '400'
