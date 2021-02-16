@@ -30,6 +30,7 @@ custom:
     functions:
       - create-subscription
       - custom-authorizer
+      - get-event-types
     dependenciesPath: ./requirements.txt
   standardResponseHeaders:
     'Access-Control-Allow-Origin': "'*'"
@@ -50,6 +51,7 @@ package:
 functions:
   create-subscription: ${file(config/functions/create-subscription.yml):function}
   custom-authorizer: ${file(config/functions/custom-authorizer.yml):function}
+  get-event-types: ${file(config/functions/get-event-types.yml):function}
   
 resources:
   Resources:

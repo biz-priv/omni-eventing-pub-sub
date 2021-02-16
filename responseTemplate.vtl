@@ -1,0 +1,10 @@
+#set ($errorMessageObj = $util.parseJson($input.path('$.errorMessage')))
+#if($errorMessageObj.httpStatus==202)
+{
+    "message": "$errorMessageObj.message"
+}
+#else
+{
+    "errorDescription": "$errorMessageObj.message"
+}
+#end

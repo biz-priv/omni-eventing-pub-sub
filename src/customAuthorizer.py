@@ -52,7 +52,7 @@ def handler(event, context):
     if type(customer_id) != str:
         return customer_id
 
-    if "/webhook" in event["methodArn"]:
+    if "/webhook" or "/events" in event["methodArn"]:
         return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)        
 
 
