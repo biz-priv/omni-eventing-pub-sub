@@ -16,8 +16,7 @@ def handler(event,context):
         return event_records
     except Exception as e:
         logging.exception("GetEventsError: {}".format(e))
-        raise GetEventsError(json.dumps({"httpStatus": 500, "message": InternalErrorMessage}))
-
+        raise GetEventsError(json.dumps({"httpStatus": 400, "message": InternalErrorMessage}))
 
 def convert_event_types(event_types):
     try:
