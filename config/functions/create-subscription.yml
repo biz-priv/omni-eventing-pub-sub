@@ -18,6 +18,11 @@ function:
           statusCodes:
             200:
               pattern: ''
+            400:
+              pattern: '.*httpStatus\": 400.*'
+              headers:
+                Content-Type: "'application/json'"
+              template: ${file(responseTemplate.vtl)}  
             501:
               pattern: '.*httpStatus\": 501.*'
               headers:
@@ -29,5 +34,4 @@ function:
   environment: 
     EVENTING_TOPICS_TABLE: ${ssm:/omni/eventing/topics/table}
     CUSTOMER_PREFERENCE_TABLE : ${ssm:/omni/eventing/preferences/table}
-    CUSTOMER_PREFERENCE_TABLE_INDEX: ${ssm:/omni/eventing/preferences/table/Index}
     REGION: ${self:provider.region}
