@@ -31,6 +31,7 @@ custom:
       - create-subscription
       - custom-authorizer
       - get-event-types
+      - datapipeline-diff
     dependenciesPath: ./requirements.txt
   standardResponseHeaders:
     'Access-Control-Allow-Origin': "'*'"
@@ -52,7 +53,8 @@ functions:
   create-subscription: ${file(config/functions/create-subscription.yml):function}
   custom-authorizer: ${file(config/functions/custom-authorizer.yml):function}
   get-event-types: ${file(config/functions/get-event-types.yml):function}
-  
+  datapipeline-diff: ${file(config/functions/datapipeline-diff.yml):function}
+
 resources:
   Resources:
     BadRequestResponse:
