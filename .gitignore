@@ -1,5 +1,4 @@
 .serverless
 node_modules/
 pydash
-src/.DS_Store
-.DS_Store
+*.DS_Store
