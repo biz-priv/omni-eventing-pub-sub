@@ -1,0 +1,25 @@
+{
+  "name": "omni-eventing-pub-sub",
+  "version": "1.0.0",
+  "description": "omni-eventing-pub-sub",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bizcloud-experts/omni-eventing-pub-sub"
+  },
+  "author": "BizCloud Experts",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bizcloud-experts/omni-eventing-pub-sub/issues"
+  },
+  "homepage": "https://github.com/bizcloud-experts/omni-eventing-pub-sub/blob/master/README.md",
+  "dependencies": {
+    "serverless": "^2.22.0",
+    "serverless-add-api-key": "^4.1.1",
+    "serverless-layers": "^2.3.3",
+    "serverless-plugin-multiple-responses": "^1.0.0"
+  }
+}

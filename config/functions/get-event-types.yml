@@ -1,0 +1,32 @@
+---
+function:
+  handler: src/getEventTypes.handler
+  name: ${self:service}-get-event-types-${self:provider.stage}
+  description: get all events types API - ${self:provider.stage}
+  events: 
+    - http:  
+        path: /events
+        method: GET
+        integration: lambda
+        private: true
+        authorizer: 
+          name: custom-authorizer
+          identitySource: method.request.header.x-api-key
+          type: request
+        response:
+          headers: ${self:custom.standardResponseHeaders}
+          statusCodes:
+            200:
+              pattern: ''
+            501:
+              pattern: '.*httpStatus\": 501.*'
+              headers:
+                Content-Type: "'application/json'"
+              template: ${file(responseTemplate.vtl)}
+  package:
+    include:
+    - src/getEventTypes.py
+  environment: 
+    EVENTING_TOPICS_TABLE: ${ssm:/omni/eventing/topics/table}
+    REGION: ${self:provider.region}
+

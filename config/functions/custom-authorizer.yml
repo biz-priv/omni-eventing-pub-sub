@@ -1,0 +1,12 @@
+---
+function:
+  handler: src/customAuthorizer.handler
+  name: ${self:service}-custom-authorizer-${self:provider.stage}
+  description: custom authorizer - ${self:provider.stage}
+  package:
+    include:
+    - src/customAuthorizer.py
+  environment:
+    TOKEN_VALIDATION_TABLE: ${ssm:/omni-dw/${self:provider.stage}/tokenValidator/table}
+    TOKEN_VALIDATION_TABLE_INDEX: ${ssm:/omni-dw/${self:provider.stage}/tokenValidator/apiKey/index}
+    REGION: ${self:provider.region}
