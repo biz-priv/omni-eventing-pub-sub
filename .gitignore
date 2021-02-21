@@ -1,5 +1,5 @@
 .serverless
 node_modules/
-pydash
+pydash/
 *.DS_Store
 config/.DS_Store

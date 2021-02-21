@@ -13,10 +13,11 @@ def handler(event,context):
         response = client.scan(TableName =os.environ['EVENTING_TOPICS_TABLE'],
                                 AttributesToGet = ['Event_Type']) 
         event_records = {'Event Types': convert_event_types(response["Items"])}
+        logger.info("All Event Types are: {}".format(json.dumps(event_records)))
         return event_records
     except Exception as e:
         logging.exception("GetEventsError: {}".format(e))
-        raise GetEventsError(json.dumps({"httpStatus": 400, "message": InternalErrorMessage}))
+        raise GetEventsError(json.dumps({"httpStatus": 400, "message": e}))
 
 def convert_event_types(event_types):
     try:

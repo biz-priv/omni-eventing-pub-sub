@@ -52,16 +52,17 @@ def handler(event, context):
             subscribe_to_topic(arn,endpoint,customer_id)            
         else:
             arn = events_response['Items'][0]['Event_Payload_Topic_Arn']['S']
-            subscribe_to_topic(arn,endpoint,customer_id)            
+            subscribe_to_topic(arn,endpoint,customer_id)
+        success_message = {"message": "Subscription successfully added"}
+        return success_message
     except Exception as e:
         logging.exception("CreateSubScriptionError: {}".format(e))
         raise CreateSubScriptionError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
     
 def subscribe_to_topic(topic_arn,endpoint,customer_id):
     try:
-        response = sns_client.subscribe(TopicArn=topic_arn, Protocol="https",Endpoint=endpoint,
-                                        Attributes={"FilterPolicy": json.dumps({"customer_id": [customer_id]})},
-                                        ReturnSubscriptionArn=True)
+        sns_client.subscribe(TopicArn=topic_arn, Protocol="https",Endpoint=endpoint,
+                                        Attributes={"FilterPolicy": json.dumps({"customer_id": [customer_id]})})
     except Exception as e:
         logging.exception("SubscribeToTopicError: {}".format(e))
         raise SubscribeToTopicError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
@@ -77,11 +78,11 @@ def dynamo_get(customer_id, event_type):
         return response
     except Exception as e:
         logging.exception("DynamoGetError: {}".format(e))
-        raise DynamoGetError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))    
+        raise DynamoGetError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))    
 
 def update_customer_preference(customer_data,customer_id):
     try:
-        response = client.put_item(
+        client.put_item(
             TableName = os.environ['CUSTOMER_PREFERENCE_TABLE'],
             Item={
                 'Event_Type': {
@@ -103,7 +104,7 @@ def update_customer_preference(customer_data,customer_id):
         )
     except Exception as e:
         logging.exception("UpdateCustomerPreferenceTableError: {}".format(e))
-        raise UpdateCustomerPreferenceTableError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
+        raise UpdateCustomerPreferenceTableError(json.dumps({"httpStatus": 400, "message": e}))
 
 
 def validate_input(payload):
