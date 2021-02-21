@@ -20,5 +20,6 @@ def handler(event, context):
         
         try:
                 res=client.execute_statement(Database=os.environ['DBNAME'], DbUser=os.environ['USER'], Sql=obj, ClusterIdentifier=os.environ['CLUSTERID'])
+                return res
         except Exception as e:
                 logging.exception("DiffQueryExecutionError: {}".format(e))
