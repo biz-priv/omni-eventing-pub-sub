@@ -17,7 +17,7 @@ def handler(event,context):
         return event_records
     except Exception as e:
         logging.exception("GetEventsError: {}".format(e))
-        raise GetEventsError(json.dumps({"httpStatus": 400, "message": e}))
+        raise GetEventsError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing Event Types"}))
 
 def convert_event_types(event_types):
     try:
