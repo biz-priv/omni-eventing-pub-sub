@@ -2,3 +2,4 @@
 node_modules/
 pydash
 *.DS_Store
+config/.DS_Store
