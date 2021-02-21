@@ -27,7 +27,7 @@ def convert_event_types(event_types):
         return events_list
     except Exception as e:
         logging.exception("EventsConversionError: {}".format(e))
-        raise EventsConversionError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
+        raise EventsConversionError(json.dumps({"httpStatus": 400, "message": "Error while converting Event Types"}))
 
 class EventsConversionError(Exception): pass
 class GetEventsError(Exception): pass
