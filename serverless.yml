@@ -32,6 +32,7 @@ custom:
       - custom-authorizer
       - get-event-types
       - datapipeline-diff
+      - create-sns-topics
     dependenciesPath: ./requirements.txt
   standardResponseHeaders:
     'Access-Control-Allow-Origin': "'*'"
@@ -54,6 +55,7 @@ functions:
   custom-authorizer: ${file(config/functions/custom-authorizer.yml):function}
   get-event-types: ${file(config/functions/get-event-types.yml):function}
   datapipeline-diff: ${file(config/functions/datapipeline-diff.yml):function}
+  create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
 
 resources:
   Resources:

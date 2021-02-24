@@ -4,6 +4,9 @@ function:
   events:
     - sns: 
         arn: ${ssm:/omni/${self:provider.stage}/eventing/sns/diff-data-pipeline/arn}
+  package:
+    include:
+    - src/datapipelineDiff.py
 
   environment:
     DBNAME: ${ssm:/omni-dw/${self:provider.stage}/db/name}

@@ -49,12 +49,23 @@ def handler(event, context):
             'ApiKey = :apikey', {":apikey": {"S": api_key}})
     
     customer_id = validate_dynamo_query_response(response, event, None, "Customer Id not found.")
+    logger.info("Customer ID is : {}".format(json.dumps(customer_id)))
     if type(customer_id) != str:
         return customer_id
 
-    if "/webhook" or "/events" in event["methodArn"]:
-        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)        
-
+    logger.info("method arn in event is : {}".format(json.dumps(event["methodArn"])))
+    if "/webhook" in event["methodArn"]:
+        logger.info("webhook api is ececuted")
+        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
+    if "GET/events" in event["methodArn"]:
+        logger.info("get events api is ececuted")
+        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
+    if customer_id != "admin" and "POST/events" in event["methodArn"]:
+        logger.info("post events api is denied")
+        return generate_policy(PolicyId, 'Deny', event["methodArn"], customer_id, message = "Not authorized")
+    else:
+        logger.info("post events api is executed")
+        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
 
 def validate_dynamo_query_response(response, event, customer_id=None, message=None):
     try:
