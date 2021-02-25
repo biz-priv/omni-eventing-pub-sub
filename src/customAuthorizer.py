@@ -51,10 +51,15 @@ def handler(event, context):
     customer_id = validate_dynamo_query_response(response, event, None, "Customer Id not found.")
     if type(customer_id) != str:
         return customer_id
-
-    if "/webhook" or "/events" in event["methodArn"]:
-        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)        
-
+    
+    if "/webhook" in event["methodArn"]:
+        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
+    if "GET/events" in event["methodArn"]:
+        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
+    if customer_id != "admin" and "POST/events" in event["methodArn"]:
+        return generate_policy(PolicyId, 'Deny', event["methodArn"], customer_id, message = "API can only be accessed by admins. Contact support and request admin credentials.")
+    else:
+        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
 
 def validate_dynamo_query_response(response, event, customer_id=None, message=None):
     try:
