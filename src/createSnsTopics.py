@@ -25,7 +25,7 @@ def handler(event, context):
         success_message = {"message": "Topic creation Successful"}
         return success_message
     if len(response["Item"]) != 0:
-        raise InputError(json.dumps({"httpStatus": 400, "message":"This SNS Topic already exists."}))
+        raise InputError(json.dumps({"httpStatus": 409, "message":"Event type already exists."}))
     
 def create_topic(event_type):
     try:

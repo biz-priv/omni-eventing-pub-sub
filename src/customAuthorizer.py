@@ -57,7 +57,7 @@ def handler(event, context):
     if "GET/events" in event["methodArn"]:
         return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
     if customer_id != "admin" and "POST/events" in event["methodArn"]:
-        return generate_policy(PolicyId, 'Deny', event["methodArn"], customer_id, message = "Not authorized")
+        return generate_policy(PolicyId, 'Deny', event["methodArn"], customer_id, message = "API can only be accessed by admins. Contact support and request admin credentials.")
     else:
         return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
 

@@ -22,7 +22,12 @@ function:
               pattern: '.*httpStatus\": 400.*'
               headers:
                 Content-Type: "'application/json'"
-              template: ${file(responseTemplate.vtl)}  
+              template: ${file(responseTemplate.vtl)}
+            409:
+              pattern: '.*httpStatus\": 409.*'
+              headers:
+                Content-Type: "'application/json'"
+              template: ${file(responseTemplate.vtl)}    
             501:
               pattern: '.*httpStatus\": 501.*'
               headers:

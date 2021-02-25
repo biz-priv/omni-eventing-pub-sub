@@ -18,7 +18,7 @@
   "homepage": "https://github.com/bizcloud-experts/omni-eventing-pub-sub/blob/master/README.md",
   "dependencies": {
     "serverless": "^2.22.0",
-    "serverless-add-api-key": "^4.1.1",
+    "serverless-add-api-key": "^4.2.0",
     "serverless-layers": "^2.3.3",
     "serverless-plugin-multiple-responses": "^1.0.0"
   }
