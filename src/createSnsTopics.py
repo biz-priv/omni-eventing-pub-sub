@@ -35,7 +35,7 @@ def create_topic(event_type):
         return topics_arns
     except Exception as e:
         logging.exception("TopicCreationError: {}".format(e))
-        raise TopicCreationError(json.dumps({"httpStatus": 400, "message": "Unable to create Topic"}))
+        raise TopicCreationError(json.dumps({"httpStatus": 400, "message": "Unable to create Event Type"}))
 
 def insert_eventing_topics(event_type,topics_arns):
     try:
@@ -61,7 +61,7 @@ def insert_eventing_topics(event_type,topics_arns):
         )
     except Exception as e:
         logging.exception("InsertEventingTopicsError: {}".format(e))
-        raise InsertEventingTopicsError(json.dumps({"httpStatus": 400, "message": e}))
+        raise InsertEventingTopicsError(json.dumps({"httpStatus": 400, "message": "Unable to create Event Type"}))
 
 def dynamo_get(event_type):
     try:
