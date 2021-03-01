@@ -24,16 +24,13 @@ def handler(event, context):
     customer_payload = event['body']
     preference = event['body']['Preference']
     event_type = event['body']['EventType']
-    shared_secret = event['body']['SharedSecret']
 
     response = dynamo_get(customer_id, event_type) 
     logger.info("Dynamo get response: {}".format(json.dumps(response)))
     
     if len(response["Items"]) != 0:
         raise InputError(json.dumps({"httpStatus": 400, "message":"Subscription already exists"}))
-    else:
-        update_customer_preference(customer_payload,customer_id)
-    
+        
     try:
         events_response = client.query(TableName=os.environ['EVENTING_TOPICS_TABLE'],
                                     KeyConditionExpression='Event_Type = :Event_Type', 
@@ -46,27 +43,31 @@ def handler(event, context):
 
     if len(events_response["Items"]) == 0:
         raise InputError(json.dumps({"httpStatus": 400, "message":"EventType does not exists."}))
+
     try:
         if preference == "fullPayload":
             arn = events_response['Items'][0]['Full_Payload_Topic_Arn']['S']    
-            subscribe_to_topic(arn,endpoint,customer_id)            
+            response = subscribe_to_topic(arn,endpoint,customer_id)            
         else:
             arn = events_response['Items'][0]['Event_Payload_Topic_Arn']['S']
-            subscribe_to_topic(arn,endpoint,customer_id)
-        success_message = {"message": "Subscription successfully added"}
-        return success_message
+            response = subscribe_to_topic(arn,endpoint,customer_id)    
     except Exception as e:
         logging.exception("CreateSubScriptionError: {}".format(e))
         raise CreateSubScriptionError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
-    
+        
+    update_customer_preference(customer_payload,customer_id,response)    
+    success_message = {"message": "Subscription successfully added"}
+    return success_message
+
 def subscribe_to_topic(topic_arn,endpoint,customer_id):
     try:
-        sns_client.subscribe(TopicArn=topic_arn, Protocol="https",Endpoint=endpoint,
-                                        Attributes={"FilterPolicy": json.dumps({"customer_id": [customer_id]})})
+        response = sns_client.subscribe(TopicArn=topic_arn, Protocol="email",Endpoint=endpoint,
+                                        Attributes={"FilterPolicy": json.dumps({"customer_id": [customer_id]})},
+                                        ReturnSubscriptionArn=True)
+        return response
     except Exception as e:
         logging.exception("SubscribeToTopicError: {}".format(e))
         raise SubscribeToTopicError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
-
 
 def dynamo_get(customer_id, event_type):
     try:
@@ -80,7 +81,7 @@ def dynamo_get(customer_id, event_type):
         logging.exception("DynamoGetError: {}".format(e))
         raise DynamoGetError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))    
 
-def update_customer_preference(customer_data,customer_id):
+def update_customer_preference(customer_data,customer_id,response):
     try:
         client.put_item(
             TableName = os.environ['CUSTOMER_PREFERENCE_TABLE'],
@@ -99,6 +100,9 @@ def update_customer_preference(customer_data,customer_id):
                 },
                 'Shared_Secret' :{
                  'S': customer_data['SharedSecret']   
+                },
+                'Subscription_arn': {
+                'S': response['SubscriptionArn']
                 }
             }
         )
