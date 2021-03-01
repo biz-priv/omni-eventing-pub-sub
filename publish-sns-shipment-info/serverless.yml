@@ -1,0 +1,34 @@
+service: eventing
+
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: python3.7
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  role: ${ssm:/omni-dw/${self:provider.stage}/lambda/role}
+  #deploymentBucket: ${ssm:/omni-dw/${self:provider.stage}/sls/deployment/bucket}  
+
+  vpc:
+    securityGroupIds:
+      - ${ssm:/omni-dw/${self:provider.stage}/lambda/sgId}
+    subnetIds:
+      - ${ssm:/omni-dw/${self:provider.stage}/lambda/subnetA}
+  stackTags:
+    Application: eventing
+    CreateBy: BizCloudExperts
+    Version: "1.0"
+    Environment: ${self:provider.stage}
+
+plugins:
+  - serverless-step-functions
+  - serverless-pseudo-parameters
+
+functions:
+  publish-sns-events: ${file(config/functions/publish-sns-events.yml):function}
+dependenciesPath: ./requirements.txt
+stepFunctions:
+  stateMachines:
+    publish-sns-events-state-machine: ${file(config/step-functions/publish-sns-events-state-machine.yml):stateMachine}
+    
