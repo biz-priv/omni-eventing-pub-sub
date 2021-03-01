@@ -1,0 +1,37 @@
+---
+function:
+  handler: src/deleteSubscription.handler
+  name: ${self:service}-delete-subscription-${self:provider.stage}
+  description: delete subscription Webhook API - ${self:provider.stage}
+  events: 
+    - http:  
+        path: /webhook
+        method: DELETE
+        integration: lambda
+        private: true
+        authorizer: 
+          name: custom-authorizer
+          identitySource: method.request.header.x-api-key
+          type: request
+        response:
+          headers: ${self:custom.standardResponseHeaders}
+          statusCodes:
+            200:
+              pattern: ''
+            400:
+              pattern: '.*httpStatus\": 400.*'
+              headers:
+                Content-Type: "'application/json'"
+              template: ${file(responseTemplate.vtl)}  
+            501:
+              pattern: '.*httpStatus\": 501.*'
+              headers:
+                Content-Type: "'application/json'"
+              template: ${file(responseTemplate.vtl)}
+  package:
+    include:
+    - src/deleteSubscription.py
+  environment: 
+    EVENTING_TOPICS_TABLE: ${ssm:/omni/eventing/topics/table}
+    CUSTOMER_PREFERENCE_TABLE : ${ssm:/omni/eventing/preferences/table}
+    REGION: ${self:provider.region}
