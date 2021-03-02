@@ -1,0 +1,26 @@
+function:
+  handler: src/snsPublish.handler
+  name: ${self:service}-sns-publish-${self:provider.stage}
+  description: omni eventing publish sns events from s3 - ${self:provider.stage}
+  memorySize: 2048
+  timeout: 900
+  package:
+    include:
+    - psycopg2/**
+​
+  events:
+    - s3:
+        bucket: dw-ps-dev
+        event: s3:ObjectCreated:*
+        rules:
+          - prefix: dev-diff-shipment-info/
+          - suffix: .csv000
+        existing: true
+  environment:
+    BUCKET: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}
+    KEY: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/key}
+    DBNAME: ${ssm:/omni-dw/${self:provider.stage}/db/name}
+    USER: ${ssm:/omni-dw/${self:provider.stage}/db/user~true}
+    HOST: ${ssm:/omni-dw/${self:provider.stage}/db/host~true}
+    PASS: ${ssm:/omni-dw/${self:provider.stage}/db/password~true}
+    DDBTABLE: ${ssm:/omni/eventing/preferences/table}

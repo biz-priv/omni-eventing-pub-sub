@@ -8,9 +8,7 @@ provider:
   region: us-east-1
   timeout: 30
   memorySize: 256
-  
   deploymentBucket: ${ssm:/omni-dw/${self:provider.stage}/sls/deployment/bucket}
-  
   role: ${ssm:/omni-dw/${self:provider.stage}/lambda/role}
   apiName: ${self:service}-api-${self:provider.stage}  
   vpc:
@@ -33,6 +31,8 @@ custom:
       - get-event-types
       - datapipeline-diff
       - create-sns-topics
+      - delete-subscription
+      - sns-publish
     dependenciesPath: ./requirements.txt
   standardResponseHeaders:
     'Access-Control-Allow-Origin': "'*'"
@@ -56,6 +56,12 @@ functions:
   get-event-types: ${file(config/functions/get-event-types.yml):function}
   datapipeline-diff: ${file(config/functions/datapipeline-diff.yml):function}
   create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
+  delete-subscription: ${file(config/functions/delete-subscription.yml):function}
+  sns-publish: ${file(config/functions/sns-publish.yml):function}
+
+stepFunctions:
+  stateMachines:
+    sns-publish-state-machine: ${file(config/step-functions/sns-publish-state-machine.yml):stateMachine}
 
 resources:
   Resources:
@@ -74,3 +80,4 @@ resources:
         RestApiId:
           Ref: 'ApiGatewayRestApi'
         StatusCode: '400'
+      
