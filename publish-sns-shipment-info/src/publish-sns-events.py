@@ -23,7 +23,7 @@ def handler(event, context):
         logging.exception("RedshiftConnectionError: {}".format(e))
 
     try:
-        response = s3_client.get_object(Bucket='bce-general', Key='dev-shipment-info-diff.csv000')
+        response = s3_client.get_object(Bucket=os.environ["BUCKET"], Key='KEY')
     except Exception as e:
         logging.exception("S3GetObjectError: {}".format(e))
 
