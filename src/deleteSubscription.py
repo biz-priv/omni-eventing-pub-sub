@@ -25,15 +25,15 @@ def handler(event, context):
     logger.info("Dynamo get response: {}".format(json.dumps(response)))
     
     if len(response["Items"]) == 0:
-        raise InputError(json.dumps({"httpStatus": 400, "message":"Subscription your tyring to unsubscribe does not exists"}))
+        raise InputError(json.dumps({"httpStatus": 404, "message":"Subscription does not exist."}))
     
     try:
         sns_client.unsubscribe(SubscriptionArn=response['Items'][0]['Subscription_arn']['S'])            
-        success_message = {"message": "You have been Unsubscribed successfully"}
+        success_message = {"message": "Unsubscribed successfully."}
         return success_message
     except Exception as e:
         logging.exception("DeleteSubScriptionError: {}".format(e))
-        raise DeleteSubScriptionError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
+        raise DeleteSubScriptionError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."}))
 
     try:
         dynamo_delete(customer_id,event_type)
