@@ -39,7 +39,7 @@ def handler(event, context):
         dynamo_delete(customer_id,event_type)
     except Exception as e:
         logging.exception("DeleteError: {}".format(e))
-        raise DeleteError(json.dumps({"httpStatus": 400, "message": "Failure: Could not unsubscribe"}))    
+        raise DeleteError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."}))    
 
 def dynamo_get(customer_id, event_type):
     try:
