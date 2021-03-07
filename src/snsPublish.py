@@ -6,6 +6,7 @@ import boto3
 import os
 import logging
 from pandas import read_csv, merge, DataFrame
+import csv
 import psycopg2
 sns_client = boto3.client('sns')
 event_map = {"shipment-info-change": "arn:aws:sns:us-east-1:332281781429:test_topic_bizcloud_sns_eventing",
@@ -16,7 +17,7 @@ def handler(event, context):
     if('existing' not in event):
         #dataframe = get_s3_object(event['s3Bucket'], event['s3Key'])
         dataframe = get_s3_object('bce-general', 'dev-shipment-info-diff.csv000')
-        print(dataframe)
+        # print(dataframe)
         diff_payload, full_payload = get_events_json(dataframe)
         diff_list = include_shared_secret(diff_payload, 'change')
         full_list = include_shared_secret(full_payload, 'full')
@@ -44,6 +45,7 @@ def handler(event, context):
     event['existing'] = 'true'
     event['input'] = [d for d in merged_list if 'published' not in d]
     return event
+
 def get_events_json(dataframe):
     try:
         raw_data = ((dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')).astype({'bill_to_nbr': 'int32'})
