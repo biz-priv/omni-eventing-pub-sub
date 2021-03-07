@@ -1,4 +1,5 @@
 function:
+  #runtime: python3.8
   handler: src/snsPublish.handler
   name: ${self:service}-sns-publish-${self:provider.stage}
   description: omni eventing publish sns events from s3 - ${self:provider.stage}
@@ -7,7 +8,10 @@ function:
   package:
     include:
     - psycopg2/**
-​
+    - src/snsPublish.py
+    #- pandas/**
+    #- numpy/**
+
   events:
     - s3:
         bucket: dw-ps-dev
