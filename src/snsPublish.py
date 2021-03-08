@@ -132,20 +132,24 @@ def get_topic_arn(event_type):
 
     return change_topic_arn, full_topic_arn
 def sns_publish(message, event_type):
-    change_topic_arn, full_topic_arn = get_topic_arn(event_type)
-    if message["SNS_FLAG"]=="DIFF":
-        topic_arn = change_topic_arn
-    elif message["SNS_FLAG"]=="FULL":
-        topic_arn = full_topic_arn
-    customer_id = str(message['customer_id'])
-    message = json.dumps(message)
-    sns_client.publish(TopicArn=topic_arn,
-                       Message=message,
-                       MessageAttributes={
-                        'customer_id': {
-                            'DataType': 'String',
-                            'StringValue': customer_id
-                        }})
+    try:
+        change_topic_arn, full_topic_arn = get_topic_arn(event_type)
+        if message["SNS_FLAG"]=="DIFF":
+            topic_arn = change_topic_arn
+        elif message["SNS_FLAG"]=="FULL":
+            topic_arn = full_topic_arn
+        customer_id = str(message['customer_id'])
+        message = json.dumps(message)
+        sns_client.publish(TopicArn=topic_arn,
+                           Message=message,
+                           MessageAttributes={
+                            'customer_id': {
+                                'DataType': 'String',
+                                'StringValue': customer_id
+                            }})
+    except Exception as e:
+        logging.exception("SNSPublishError: {}".format(e))
+
 def include_shared_secret(payload, payload_type):
     json_list = []
     try:
