@@ -6,18 +6,24 @@ import boto3
 import os
 import logging
 from pandas import read_csv, merge, DataFrame
-import csv
 import psycopg2
+
+# from src.common import mo
 sns_client = boto3.client('sns')
 event_map = {"shipment-info-change": "arn:aws:sns:us-east-1:332281781429:test_topic_bizcloud_sns_eventing",
-             "shipment-info-full": "arn:aws:sns:us-east-1:332281781429:test_topic_bizcloud_sns_eventing"}
+             "shipment-info-full": "arn:aws:sns:us-east-1:332281781429:test_topic_bizcloud_sns_eventing",
+             "milestone": "",
+             "milestone-full": "",
+             "invoice-change": "",
+             "invoice-full": ""
+             }
 
 
 def handler(event, context):
     if('existing' not in event):
-        #dataframe = get_s3_object(event['s3Bucket'], event['s3Key'])
-        dataframe = get_s3_object('bce-general', 'dev-shipment-info-diff.csv000')
-        # print(dataframe)
+        bucket = event['Records'][0]['s3']['bucket']['name']
+        key = event['Records'][0]['s3']['object']['key']
+        dataframe = get_s3_object(bucket, key)
         diff_payload, full_payload = get_events_json(dataframe)
         diff_list = include_shared_secret(diff_payload, 'change')
         full_list = include_shared_secret(full_payload, 'full')
@@ -25,7 +31,6 @@ def handler(event, context):
     else:
         merged_list = event['input']
 
-    # pending_publish_list = [d for d in merged_list if d['published'] != "true"]
     if(len(merged_list) == 0):
         event['end'] = 'true'
     else:
@@ -44,6 +49,7 @@ def handler(event, context):
             event['end'] = 'false'
     event['existing'] = 'true'
     event['input'] = [d for d in merged_list if 'published' not in d]
+
     return event
 
 def get_events_json(dataframe):
@@ -100,9 +106,9 @@ def get_shared_secret(cust_id):
     except Exception as e:
         logging.exception("DynamoDBCQueryExecutionError: {}".format(e))
 def get_cust_id(bill_to_numbers):
-    con = psycopg2.connect(dbname='test_datamodel',
-                           host='10.9.130.79',
-                           port='5439', user='bceuser1', password='BizCloudExp1')
+    con = psycopg2.connect(dbname=os.environ['DBNAME'],
+                           host=os.environ['HOST'],
+                           port=os.environ['PORT'], user=os.environ['USER'], password=os.environ['PASS'])
     con.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     cur = con.cursor()
     cur.execute(f"select id,cust_nbr,source_system from public.api_token where cust_nbr in {bill_to_numbers}")
@@ -117,6 +123,13 @@ def get_topic_arn(event_type):
     if ("shipment-info" in event_type):
         change_topic_arn = event_map["shipment-info-change"]
         full_topic_arn = event_map["shipment-info-full"]
+    elif ("invoice" in event_type):
+        change_topic_arn = event_map["invoice-change"]
+        full_topic_arn = event_map["invoice-full"]
+    elif ("milestone" in event_type):
+        change_topic_arn = event_map["milestone-change"]
+        full_topic_arn = event_map["milestone-full"]
+
     return change_topic_arn, full_topic_arn
 def sns_publish(message, event_type):
     change_topic_arn, full_topic_arn = get_topic_arn(event_type)

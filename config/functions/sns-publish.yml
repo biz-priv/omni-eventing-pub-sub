@@ -28,3 +28,4 @@ function:
     HOST: ${ssm:/omni-dw/${self:provider.stage}/db/host~true}
     PASS: ${ssm:/omni-dw/${self:provider.stage}/db/password~true}
     DDBTABLE: ${ssm:/omni/eventing/preferences/table}
+    PORT: ${ssm:/omni-dw/${self:provider.stage}/db/port}
