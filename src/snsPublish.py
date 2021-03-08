@@ -101,7 +101,7 @@ def get_shared_secret(cust_id):
         logging.exception("DynamoDBCQueryExecutionError: {}".format(e))
 def get_cust_id(bill_to_numbers):
     con = psycopg2.connect(dbname='test_datamodel',
-                           host='omni-dw-prod.cnimhrgrtodg.us-east-1.redshift.amazonaws.com',
+                           host='10.9.130.79',
                            port='5439', user='bceuser1', password='BizCloudExp1')
     con.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     cur = con.cursor()

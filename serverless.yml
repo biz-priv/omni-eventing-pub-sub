@@ -47,7 +47,7 @@ plugins:
 package:
   individually: true
   exclude:
-  - '**/*'
+  # - '**/*'
   - serverless.yaml
 
 functions:
