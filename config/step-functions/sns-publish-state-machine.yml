@@ -3,9 +3,20 @@ stateMachine:
   name: ${self:service}-sns-publish-state-machine-${self:provider.stage}
   definition:
     Comment: 'State machine to publish sns notifications from S3'
-    StartAt: publishSNSEvents
+    StartAt: PublishEvents
     States:
-      publishSNSEvents:
+      PublishEvents:
         Type: Task
         Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-sns-publish-${self:provider.stage}"
-        End: true
+        Next: EndChoice
+      EndChoice:
+        Type: Choice
+        Choices: 
+          -
+            Variable: $.end
+            StringEquals: 'true'
+            End: true
+          - 
+            Variable: $.end
+            StringEquals: 'false'
+            Next: PublishEvents
