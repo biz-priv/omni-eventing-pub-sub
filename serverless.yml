@@ -22,7 +22,14 @@ provider:
     Version: "1.0"
     Environment: ${self:provider.stage}
 
+
 custom: 
+  dev:
+    account: "332281781429"
+    region: "us-east-1"
+  prod:
+    account: "332281781429"
+    region: "us-east-1"
   apiKeys: ${file(config/${self:provider.stage}ApiKeys.yaml):keys}
   serverless-layers:
     functions:
@@ -32,6 +39,7 @@ custom:
       - datapipeline-diff
       - create-sns-topics
       - delete-subscription
+      - sns-publish
     dependenciesPath: ./requirements.txt
   standardResponseHeaders:
     'Access-Control-Allow-Origin': "'*'"
@@ -42,11 +50,12 @@ plugins:
   - serverless-layers
   - serverless-add-api-key
   - serverless-plugin-multiple-responses
-  
+  - serverless-step-functions
+  - serverless-pseudo-parameters
 package:
   individually: true
   exclude:
-  - '**/*'
+  # - '**/*'
   - serverless.yaml
 
 functions:
@@ -56,6 +65,12 @@ functions:
   datapipeline-diff: ${file(config/functions/datapipeline-diff.yml):function}
   create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
   delete-subscription: ${file(config/functions/delete-subscription.yml):function}
+  sns-publish: ${file(config/functions/sns-publish.yml):function}
+  s3-event: ${file(config/functions/s3-event.yml):function}
+
+stepFunctions:
+  stateMachines:
+    sns-publish-state-machine: ${file(config/step-functions/sns-publish-state-machine.yml):stateMachine}
 
 resources:
   Resources:
@@ -74,4 +89,4 @@ resources:
         RestApiId:
           Ref: 'ApiGatewayRestApi'
         StatusCode: '400'
-      
+

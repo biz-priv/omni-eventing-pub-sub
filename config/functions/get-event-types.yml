@@ -24,6 +24,8 @@ function:
                 Content-Type: "'application/json'"
               template: ${file(responseTemplate.vtl)}
   package:
+    exclude:
+    - '**/*'
     include:
     - src/getEventTypes.py
   environment: 

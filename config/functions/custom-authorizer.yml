@@ -4,6 +4,8 @@ function:
   name: ${self:service}-custom-authorizer-${self:provider.stage}
   description: custom authorizer - ${self:provider.stage}
   package:
+    exclude:
+    - '**/*'
     include:
     - src/customAuthorizer.py
   environment:

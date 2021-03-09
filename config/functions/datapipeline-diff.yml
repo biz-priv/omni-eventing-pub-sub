@@ -5,6 +5,8 @@ function:
     - sns: 
         arn: ${ssm:/omni/${self:provider.stage}/eventing/sns/diff-data-pipeline/arn}
   package:
+    exclude:
+    - '**/*'
     include:
     - src/datapipelineDiff.py
 

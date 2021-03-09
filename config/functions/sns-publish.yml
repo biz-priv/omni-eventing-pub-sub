@@ -1,0 +1,32 @@
+function:
+  handler: src/snsPublish.handler
+  name: ${self:service}-sns-publish-${self:provider.stage}
+  description: omni eventing publish sns events from s3 - ${self:provider.stage}
+  memorySize: 2048
+  timeout: 900
+  package:
+    include:
+    - psycopg2/**
+    - src/snsPublish.py
+    - pandas/**
+    - numpy/**
+    - pytz/**
+    exclude:
+    - config/**
+    - src/createSnsTopic.py
+    - src/createSubscription.py
+    - src/datapipelineDiff.py
+    - src/deleteSubscription.py
+    - src/getEventTypes.py
+    - src/s3Event.py
+
+  environment:
+    BUCKET: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}
+    KEY: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/key}
+    DBNAME: ${ssm:/omni-dw/${self:provider.stage}/db/name}
+    USER: ${ssm:/omni-dw/${self:provider.stage}/db/user~true}
+    HOST: ${ssm:/omni-dw/${self:provider.stage}/db/host~true}
+    PASS: ${ssm:/omni-dw/${self:provider.stage}/db/password~true}
+    DDBTABLE: ${ssm:/omni/eventing/preferences/table}
+    PORT: ${ssm:/omni-dw/${self:provider.stage}/db/port}
+    SNSARN: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/test/arn}
