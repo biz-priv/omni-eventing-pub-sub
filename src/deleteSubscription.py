@@ -39,7 +39,7 @@ def handler(event, context):
         dynamo_delete(customer_id,event_type)
     except Exception as e:
         logging.exception("DeleteError: {}".format(e))
-        raise DeleteError(json.dumps({"httpStatus": 400, "message": "Failure: Could not unsubscribe"}))    
+        raise DeleteError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."}))    
 
 def dynamo_get(customer_id, event_type):
     try:
@@ -57,11 +57,11 @@ def dynamo_get(customer_id, event_type):
 
 def dynamo_delete(customer_id, event_type):
     try:
-        response = client.delete_item(
-                    TableName=os.environ['CUSTOMER_PREFERENCE_TABLE'],
-                    KeyConditionExpression='Customer_Id = :Customer_Id and Event_Type = :Event_Type',
-                    ExpressionAttributeValues= {":Customer_Id": {"S": customer_id}, 
-                                                ":Event_Type": {"S":event_type}})
+        client.delete_item(
+            TableName=os.environ['CUSTOMER_PREFERENCE_TABLE'],
+            KeyConditionExpression='Customer_Id = :Customer_Id and Event_Type = :Event_Type',
+            ExpressionAttributeValues= {":Customer_Id": {"S": customer_id}, 
+                                        ":Event_Type": {"S":event_type}})
     except Exception as e:
         logging.exception("DynamoDeleteError: {}".format(e))
         raise DynamoDeleteError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))    
