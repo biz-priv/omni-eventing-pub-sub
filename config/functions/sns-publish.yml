@@ -11,6 +11,14 @@ function:
     - pandas/**
     - numpy/**
     - pytz/**
+    exclude:
+    - config/**
+    - src/createSnsTopic.py
+    - src/createSubscription.py
+    - src/datapipelineDiff.py
+    - src/deleteSubscription.py
+    - src/getEventTypes.py
+    - src/s3Event.py
 
   environment:
     BUCKET: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}

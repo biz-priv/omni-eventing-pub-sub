@@ -20,7 +20,10 @@
     "serverless": "^2.22.0",
     "serverless-add-api-key": "^4.2.0",
     "serverless-layers": "^2.3.3",
-    "serverless-plugin-multiple-responses": "^1.0.0",
+    "serverless-plugin-multiple-responses": "^1.0.0"
+  },
+  "devDependencies": {
+    "serverless-pseudo-parameters": "^2.5.0",
     "serverless-step-functions": "^2.29.0"
   }
 }

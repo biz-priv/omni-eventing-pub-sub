@@ -15,8 +15,10 @@ stateMachine:
           -
             Variable: $.end
             StringEquals: 'true'
-            End: true
+            Next: SuccessState
           - 
             Variable: $.end
             StringEquals: 'false'
             Next: PublishEvents
+      SuccessState:
+        Type: Succeed

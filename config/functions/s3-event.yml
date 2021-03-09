@@ -5,10 +5,10 @@ function:
   memorySize: 2048
   timeout: 900
   package:
+    exclude:
+    - '**/*'
     include:
     - src/s3Event.py
-    exclude:
-      - '**/*'
 
   events:
     - s3:
@@ -19,4 +19,4 @@ function:
           - suffix: .csv000
         existing: true
   environment:
-    SM_ARN: "arn:aws:states:us-east-1:332281781429:stateMachine:omni-eventing-sns-publish-state-machine-dev"
+    SM_ARN: arn:aws:states:${self:custom.${self:provider.stage}.region}:${self:custom.${self:provider.stage}.account}:stateMachine:omni-eventing-sns-publish-state-machine-${self:provider.stage}

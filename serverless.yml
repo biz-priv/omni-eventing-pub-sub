@@ -24,6 +24,12 @@ provider:
 
 
 custom: 
+  dev:
+    account: "332281781429"
+    region: "us-east-1"
+  prod:
+    account: "332281781429"
+    region: "us-east-1"
   apiKeys: ${file(config/${self:provider.stage}ApiKeys.yaml):keys}
   serverless-layers:
     functions:
