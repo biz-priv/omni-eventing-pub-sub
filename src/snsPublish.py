@@ -8,10 +8,10 @@ import logging
 from pandas import read_csv, merge, DataFrame
 import psycopg2
 
-# from src.common import mo
+
 sns_client = boto3.client('sns')
-event_map = {"shipment-info-change": "arn:aws:sns:us-east-1:332281781429:test_topic_bizcloud_sns_eventing",
-             "shipment-info-full": "arn:aws:sns:us-east-1:332281781429:test_topic_bizcloud_sns_eventing",
+event_map = {"shipment-info-change": os.environ["SNSARN"],
+             "shipment-info-full": os.environ["SNSARN"],
              "milestone": "",
              "milestone-full": "",
              "invoice-change": "",

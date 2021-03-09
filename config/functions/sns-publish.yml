@@ -12,14 +12,6 @@ function:
     - numpy/**
     - pytz/**
 
-  events:
-    - s3:
-        bucket: dw-ps-dev
-        event: s3:ObjectCreated:*
-        rules:
-          - prefix: dev-diff-shipment-info/
-          - suffix: .csv000
-        existing: true
   environment:
     BUCKET: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}
     KEY: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/key}
@@ -29,3 +21,4 @@ function:
     PASS: ${ssm:/omni-dw/${self:provider.stage}/db/password~true}
     DDBTABLE: ${ssm:/omni/eventing/preferences/table}
     PORT: ${ssm:/omni-dw/${self:provider.stage}/db/port}
+    SNSARN: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/test/arn}

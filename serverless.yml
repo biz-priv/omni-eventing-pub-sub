@@ -22,6 +22,7 @@ provider:
     Version: "1.0"
     Environment: ${self:provider.stage}
 
+
 custom: 
   apiKeys: ${file(config/${self:provider.stage}ApiKeys.yaml):keys}
   serverless-layers:
@@ -43,7 +44,8 @@ plugins:
   - serverless-layers
   - serverless-add-api-key
   - serverless-plugin-multiple-responses
-  
+  - serverless-step-functions
+  - serverless-pseudo-parameters
 package:
   individually: true
   exclude:
@@ -58,6 +60,7 @@ functions:
   create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
   delete-subscription: ${file(config/functions/delete-subscription.yml):function}
   sns-publish: ${file(config/functions/sns-publish.yml):function}
+  s3-event: ${file(config/functions/s3-event.yml):function}
 
 stepFunctions:
   stateMachines:
@@ -80,4 +83,4 @@ resources:
         RestApiId:
           Ref: 'ApiGatewayRestApi'
         StatusCode: '400'
-      
+
