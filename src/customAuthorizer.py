@@ -51,15 +51,12 @@ def handler(event, context):
     print(response)
     
     customer_id = validate_dynamo_query_response(response, event, None, "Customer Id not found.")
-    print(customer_id)
     # if type(customer_id) != str:
     #     return customer_id
     print (event["methodArn"])
     if "POST/webhook" in event["methodArn"]:
-        print("POST")
         return generate_policy("postPolicyId123", 'Allow', event["methodArn"], customer_id)
     elif "DELETE/webhook" in event["methodArn"]:
-        print("DELETE")
         return generate_policy("deletePolicyId456", 'Allow', event["methodArn"], customer_id)
     if "GET/events" in event["methodArn"]:
         return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
