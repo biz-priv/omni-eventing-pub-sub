@@ -28,20 +28,19 @@ def handler(event, context):
         raise InputError(json.dumps({"httpStatus": 404, "message":"Subscription does not exist."}))
     
     try:
-        sns_client.unsubscribe(SubscriptionArn=response['Items'][0]['Subscription_arn']['S'])            
+        sns_client.unsubscribe(SubscriptionArn=response['Items'][0]['Subscription_arn']['S'])
     except Exception as e:
         logging.exception("DeleteSubScriptionError: {}".format(e))
         raise DeleteSubScriptionError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."}))
-
+    
     try:
         dynamo_delete(customer_id,event_type)
         success_message = {"message": "Unsubscribed successfully."}
         return success_message
     except Exception as e:
         logging.exception("DeleteError: {}".format(e))
-        raise DeleteError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."}))    
+        raise DeleteError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."}))
     
-
 def dynamo_get(customer_id, event_type):
     try:
         response = client.query(
@@ -53,7 +52,7 @@ def dynamo_get(customer_id, event_type):
         return response
     except Exception as e:
         logging.exception("DynamoGetError: {}".format(e))
-        raise DynamoGetError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))    
+        raise DynamoGetError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))
 
 
 def dynamo_delete(customer_id, event_type):
@@ -64,7 +63,7 @@ def dynamo_delete(customer_id, event_type):
                 'Event_Type': {'S': event_type}})
     except Exception as e:
         logging.exception("DynamoDeleteError: {}".format(e))
-        raise DynamoDeleteError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))    
+        raise DynamoDeleteError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))
 
 
 def validate_input(payload):
@@ -80,8 +79,8 @@ def validate_input(payload):
         validate(instance=payload,schema=schema)
     except jsonschema.exceptions.ValidationError as e:
         raise InputError(json.dumps({"httpStatus": 400, "message":e.message}))
-    # if not validators.url(payload['Endpoint']) or not pydash.strings.starts_with(payload['Endpoint'],"https"):
-    #     raise InputError(json.dumps({"httpStatus": 400, "message":"Only Valid HTTPS endpoints are accepted"}))
+    if not validators.url(payload['Endpoint']) or not pydash.strings.starts_with(payload['Endpoint'],"https"):
+        raise InputError(json.dumps({"httpStatus": 400, "message":"Only Valid HTTPS endpoints are accepted"}))
     
         
 class ValidationError(Exception): pass    

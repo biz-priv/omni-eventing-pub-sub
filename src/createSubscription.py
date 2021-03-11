@@ -62,7 +62,7 @@ def handler(event, context):
 
 def subscribe_to_topic(topic_arn,endpoint,customer_id):
     try:
-        response = sns_client.subscribe(TopicArn=topic_arn, Protocol="email",Endpoint=endpoint,
+        response = sns_client.subscribe(TopicArn=topic_arn, Protocol="https",Endpoint=endpoint,
                                         Attributes={"FilterPolicy": json.dumps({"customer_id": [customer_id]})},
                                         ReturnSubscriptionArn=True)
         return response
@@ -130,8 +130,8 @@ def validate_input(payload):
         validate(instance=payload,schema=schema)
     except jsonschema.exceptions.ValidationError as e:
         raise InputError(json.dumps({"httpStatus": 400, "message":e.message}))
-    # if not validators.url(payload['Endpoint']) or not pydash.strings.starts_with(payload['Endpoint'],"https"):
-    #     raise InputError(json.dumps({"httpStatus": 400, "message":"Only Valid HTTPS endpoints are accepted"}))
+    if not validators.url(payload['Endpoint']) or not pydash.strings.starts_with(payload['Endpoint'],"https"):
+        raise InputError(json.dumps({"httpStatus": 400, "message":"Only Valid HTTPS endpoints are accepted"}))
     
         
 class ValidationError(Exception): pass    
