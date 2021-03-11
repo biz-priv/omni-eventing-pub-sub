@@ -89,4 +89,3 @@ resources:
         RestApiId:
           Ref: 'ApiGatewayRestApi'
         StatusCode: '400'
-
