@@ -10,8 +10,8 @@ import psycopg2
 
 
 sns_client = boto3.client('sns')
-event_map = {"shipment-info-change": os.environ["SNSARN_CHANGE"],
-             "shipment-info-full": os.environ["SNSARN_FULL"],
+event_map = {"shipment-info-change": os.environ["SHIPMENT_INFO_SNS_CHANGE_ARN"],
+             "shipment-info-full": os.environ["SHIPMENT_INFO_SNS_FULL_ARN"],
              "milestone": "",
              "milestone-full": "",
              "invoice-change": "",

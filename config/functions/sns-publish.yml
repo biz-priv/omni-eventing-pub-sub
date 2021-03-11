@@ -29,5 +29,5 @@ function:
     PASS: ${ssm:/omni-dw/${self:provider.stage}/db/password~true}
     DDBTABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}
     PORT: ${ssm:/omni-dw/${self:provider.stage}/db/port}
-    SNSARN_FULL: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/full/arn}
-    SNSARN_CHANGE: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/change/arn}
+    SHIPMENT_INFO_SNS_FULL_ARN: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/full/arn}
+    SHIPMENT_INFO_SNS_CHANGE_ARN: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/change/arn}
