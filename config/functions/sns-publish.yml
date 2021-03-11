@@ -27,6 +27,7 @@ function:
     USER: ${ssm:/omni-dw/${self:provider.stage}/db/user~true}
     HOST: ${ssm:/omni-dw/${self:provider.stage}/db/host~true}
     PASS: ${ssm:/omni-dw/${self:provider.stage}/db/password~true}
-    DDBTABLE: ${ssm:/omni/eventing/preferences/table}
+    DDBTABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}
     PORT: ${ssm:/omni-dw/${self:provider.stage}/db/port}
-    SNSARN: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/test/arn}
+    SNSARN_FULL: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/full/arn}
+    SNSARN_CHANGE: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/change/arn}

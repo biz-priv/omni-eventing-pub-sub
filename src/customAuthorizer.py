@@ -40,6 +40,7 @@ def generate_policy(principal_id, effect, method_arn, customer_id = None, messag
 def handler(event, context):
     try:        
         logger.info("Event: {}".format(json.dumps(event)))
+        logger.info("Event Method ARN is: {}".format(json.dumps(event["methodArn"])))
         api_key = event['headers']['x-api-key']
     except Exception as e:
         logging.exception("ApiKeyError: {}".format(e))
@@ -47,13 +48,19 @@ def handler(event, context):
 
     response = dynamo_query(os.environ["TOKEN_VALIDATION_TABLE"], os.environ["TOKEN_VALIDATION_TABLE_INDEX"], 
             'ApiKey = :apikey', {":apikey": {"S": api_key}})
+    print(response)
     
     customer_id = validate_dynamo_query_response(response, event, None, "Customer Id not found.")
-    if type(customer_id) != str:
-        return customer_id
-    
-    if "/webhook" in event["methodArn"]:
-        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
+    print(customer_id)
+    # if type(customer_id) != str:
+    #     return customer_id
+    print (event["methodArn"])
+    if "POST/webhook" in event["methodArn"]:
+        print("POST")
+        return generate_policy("postPolicyId123", 'Allow', event["methodArn"], customer_id)
+    elif "DELETE/webhook" in event["methodArn"]:
+        print("DELETE")
+        return generate_policy("deletePolicyId456", 'Allow', event["methodArn"], customer_id)
     if "GET/events" in event["methodArn"]:
         return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
     if customer_id != "admin" and "POST/events" in event["methodArn"]:
@@ -64,10 +71,13 @@ def handler(event, context):
 def validate_dynamo_query_response(response, event, customer_id=None, message=None):
     try:
         if not response or "Items" not in response or len(response['Items']) == 0:
+            print("IF -1")
             return generate_policy(None, 'Deny', event["methodArn"], None, message)
         if not customer_id:
+            print("IF -")
             return response['Items'][0]['CustomerID']['S']
         else:
+            print("else")
             return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
     except Exception as e:
         logging.exception("CustomerIdNotFound: {}".format(e))

@@ -22,7 +22,12 @@ function:
               pattern: '.*httpStatus\": 400.*'
               headers:
                 Content-Type: "'application/json'"
-              template: ${file(responseTemplate.vtl)}  
+              template: ${file(responseTemplate.vtl)}
+            404:
+              pattern: '.*httpStatus\": 404.*'
+              headers:
+                Content-Type: "'application/json'"
+              template: ${file(responseTemplate.vtl)}    
             501:
               pattern: '.*httpStatus\": 501.*'
               headers:
@@ -34,6 +39,6 @@ function:
     include:
     - src/deleteSubscription.py
   environment: 
-    EVENTING_TOPICS_TABLE: ${ssm:/omni/eventing/topics/table}
-    CUSTOMER_PREFERENCE_TABLE : ${ssm:/omni/eventing/preferences/table}
+    EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}
+    CUSTOMER_PREFERENCE_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}
     REGION: ${self:provider.region}
