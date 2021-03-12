@@ -7,6 +7,9 @@ import os
 import logging
 from pandas import read_csv, merge, DataFrame
 import psycopg2
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 sns_client = boto3.client('sns')
@@ -14,8 +17,8 @@ event_map = {"shipment-info-change": os.environ["SHIPMENT_INFO_SNS_CHANGE_ARN"],
              "shipment-info-full": os.environ["SHIPMENT_INFO_SNS_FULL_ARN"],
              "milestone": "",
              "milestone-full": "",
-             "invoice-change": "",
-             "invoice-full": ""
+             "invoice-change": "SNS_TEST_ARN",
+             "invoice-full": "SNS_TEST_ARN"
              }
 
 
@@ -24,10 +27,19 @@ def handler(event, context):
         bucket = event['Records'][0]['s3']['bucket']['name']
         key = event['Records'][0]['s3']['object']['key']
         dataframe = get_s3_object(bucket, key)
-        diff_payload, full_payload = get_events_json(dataframe)
+        if('dev-diff-shipment-info/dev-shipment-info-diff.csv000' in key):
+            diff_payload, full_payload = get_events_json_shipments(dataframe)
+        elif('dev-diff-shipment-info/dev-customer-invoices-diff.csv000' in key):
+            diff_payload, full_payload = get_events_json_invoices(dataframe)
+        print("diff_payload")
+        print(diff_payload)
+        print("full_payload")
+        print(full_payload)
         diff_list = include_shared_secret(diff_payload, 'change')
         full_list = include_shared_secret(full_payload, 'full')
         merged_list = full_list + diff_list
+        print("########MERGED LIST##########")
+        print(merged_list)
     else:
         merged_list = event['input']
 
@@ -40,7 +52,7 @@ def handler(event, context):
             sns_publish(message, 'shipment-info')
             merged_list[index]['published'] = 'true'
             count += 1
-            if (count >= 7):
+            if (count >= 20):
                 break
 
         if(len([d for d in merged_list if 'published' not in d]) == 0):
@@ -52,8 +64,9 @@ def handler(event, context):
 
     return event
 
-def get_events_json(dataframe):
+def get_events_json_shipments(dataframe):
     try:
+        print("#############SHIPMENTS-INFO############")
         raw_data = ((dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')).astype({'bill_to_nbr': 'int32'})
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
         old_file_nbrs = list(old_data.file_nbr.unique())
@@ -85,6 +98,62 @@ def get_events_json(dataframe):
         return json_obj, json_obj_full
     except Exception as e:
         logging.exception("GetEventsJsonError: {}".format(e))
+
+def get_events_json_invoices(dataframe):
+    try:
+        #raw_data = ((dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')).astype({'bill_to_nbr': 'int32'})
+        raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
+        print("raw_data")
+        print(raw_data)
+        old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
+        old_file_nbrs = list(old_data.file_nbr.unique())
+        new_file_nbrs = list(old_data.file_nbr.unique())
+        changed_data = raw_data.loc[raw_data['record_type'] == 'NEW']
+        new_file_nbrs = list(changed_data.file_nbr.unique())
+        new_data = changed_data
+        changed_data = changed_data.loc[changed_data['file_nbr'].isin(old_file_nbrs)]
+        print("OLD_DATA")
+        print(old_data)
+        print("CHANGED_DATA")
+        print(changed_data)
+        bill_to_numbers = raw_data.bill_to_nbr.unique()
+        bill_to_numbers = tuple([i for i in bill_to_numbers])
+        print("bill_to_numbers")
+        print(bill_to_numbers)
+        old_data = old_data.set_index(['id'])
+        changed_data = changed_data.set_index(['id'])
+        new_data = new_data.set_index(['id'])
+        old_data = old_data.sort_index()
+        changed_data = changed_data.sort_index()
+        new_data = new_data.sort_index()
+        old_data = old_data.loc[old_data['file_nbr'].isin(new_file_nbrs)]
+        print("OLD_DATA")
+        print(old_data)
+        diff = old_data.compare(changed_data)
+        diff.columns.set_levels(['old', 'new'], level=1, inplace=True)
+        db_cust_ids = get_cust_id(bill_to_numbers)
+        cust_id_df = DataFrame.from_records(db_cust_ids, columns=['customer_id', 'bill_to_nbr', 'source_system'])
+        #cust_id_df = cust_id_df.astype({'bill_to_nbr': 'int32'})
+        print("########raw_data_with_cid is###########")
+        raw_data_with_cid = merge_rawdata_with_customer_id(raw_data, cust_id_df)
+        
+        logger.info("raw_data_with_cid: {}".format((raw_data_with_cid)))
+        print("PRINTING DIFFF")
+        logger.info(diff)
+        final_diff = merge(raw_data_with_cid, diff, how='inner', on='id')
+        print("PRINTING DIFFF AFTER MERGE")
+        print(final_diff)
+        final_diff = final_diff.reset_index()
+        final_diff['SNS_FLAG'] = 'DIFF'
+        full_payload = merge(raw_data_with_cid, new_data, how='inner', on='id')
+        full_payload = full_payload.reset_index()
+        full_payload['SNS_FLAG'] = 'FULL'
+        json_obj = json.loads(final_diff.apply(lambda x: [x.dropna()], axis=1).to_json())
+        json_obj_full = json.loads(full_payload.to_json(orient='records'))
+        return json_obj, json_obj_full
+    except Exception as e:
+        logging.exception("GetEventsJsonError: {}".format(e))
+
 def get_s3_object(bucket, key):
     try:
         client = boto3.client('s3')
@@ -115,7 +184,7 @@ def get_cust_id(bill_to_numbers):
     con.commit()
     x = cur.fetchall()
     cust_id_df = DataFrame.from_records(x, columns=['customer_id', 'bill_to_nbr', 'source_system'])
-    cust_id_df = cust_id_df.astype({'bill_to_nbr': 'int32'})
+    #cust_id_df = cust_id_df.astype({'bill_to_nbr': 'int32'})
     cur.close()
     con.close()
     return cust_id_df
@@ -170,11 +239,18 @@ def include_shared_secret(payload, payload_type):
         logging.exception("PublishMessageError: {}".format(e))
         raise SharedSecretFetchError
 def merge_rawdata_with_customer_id(raw_data, cust_id_df):
+    logger.info(raw_data)
+    logger.info(cust_id_df)
     raw_data_with_cid = merge(raw_data, cust_id_df, how='inner', left_on=['bill_to_nbr', 'source_system'],
                               right_on=['bill_to_nbr', 'source_system'])
-    raw_data_with_cid = raw_data_with_cid[['bill_to_nbr', 'file_nbr', 'customer_id']]
-    raw_data_with_cid = raw_data_with_cid.drop_duplicates(subset=['file_nbr'])
-    raw_data_with_cid = raw_data_with_cid.set_index(['file_nbr'])
+    logger.info(raw_data_with_cid)
+    raw_data_with_cid = raw_data_with_cid[['bill_to_nbr', 'file_nbr', 'customer_id', 'id']]
+    # logger.info(raw_data_with_cid)
+    raw_data_with_cid = raw_data_with_cid.drop_duplicates(subset=['id'])
+    raw_data_with_cid = raw_data_with_cid.set_index(['id'])
     raw_data_with_cid = raw_data_with_cid.sort_index()
+    print("PRINTING raw_data_with_cid")
+    logger.info(raw_data_with_cid)
+    print("#######################")
     return raw_data_with_cid
 class SharedSecretFetchError(Exception): pass
