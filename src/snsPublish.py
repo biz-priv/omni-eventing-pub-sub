@@ -101,10 +101,7 @@ def get_events_json_shipments(dataframe):
 
 def get_events_json_invoices(dataframe):
     try:
-        #raw_data = ((dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')).astype({'bill_to_nbr': 'int32'})
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
-        print("raw_data")
-        print(raw_data)
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
         old_file_nbrs = list(old_data.file_nbr.unique())
         new_file_nbrs = list(old_data.file_nbr.unique())
@@ -112,10 +109,6 @@ def get_events_json_invoices(dataframe):
         new_file_nbrs = list(changed_data.file_nbr.unique())
         new_data = changed_data
         changed_data = changed_data.loc[changed_data['file_nbr'].isin(old_file_nbrs)]
-        print("OLD_DATA")
-        print(old_data)
-        print("CHANGED_DATA")
-        print(changed_data)
         bill_to_numbers = raw_data.bill_to_nbr.unique()
         bill_to_numbers = tuple([i for i in bill_to_numbers])
         print("bill_to_numbers")
@@ -127,22 +120,12 @@ def get_events_json_invoices(dataframe):
         changed_data = changed_data.sort_index()
         new_data = new_data.sort_index()
         old_data = old_data.loc[old_data['file_nbr'].isin(new_file_nbrs)]
-        print("OLD_DATA")
-        print(old_data)
         diff = old_data.compare(changed_data)
         diff.columns.set_levels(['old', 'new'], level=1, inplace=True)
         db_cust_ids = get_cust_id(bill_to_numbers)
         cust_id_df = DataFrame.from_records(db_cust_ids, columns=['customer_id', 'bill_to_nbr', 'source_system'])
-        #cust_id_df = cust_id_df.astype({'bill_to_nbr': 'int32'})
-        print("########raw_data_with_cid is###########")
         raw_data_with_cid = merge_rawdata_with_customer_id(raw_data, cust_id_df)
-        
-        logger.info("raw_data_with_cid: {}".format((raw_data_with_cid)))
-        print("PRINTING DIFFF")
-        logger.info(diff)
         final_diff = merge(raw_data_with_cid, diff, how='inner', on='id')
-        print("PRINTING DIFFF AFTER MERGE")
-        print(final_diff)
         final_diff = final_diff.reset_index()
         final_diff['SNS_FLAG'] = 'DIFF'
         full_payload = merge(raw_data_with_cid, new_data, how='inner', on='id')
@@ -183,8 +166,9 @@ def get_cust_id(bill_to_numbers):
     cur.execute(f"select id,cust_nbr,source_system from public.api_token where cust_nbr in {bill_to_numbers}")
     con.commit()
     x = cur.fetchall()
+    print("x")
+    print(x)
     cust_id_df = DataFrame.from_records(x, columns=['customer_id', 'bill_to_nbr', 'source_system'])
-    #cust_id_df = cust_id_df.astype({'bill_to_nbr': 'int32'})
     cur.close()
     con.close()
     return cust_id_df
@@ -239,18 +223,13 @@ def include_shared_secret(payload, payload_type):
         logging.exception("PublishMessageError: {}".format(e))
         raise SharedSecretFetchError
 def merge_rawdata_with_customer_id(raw_data, cust_id_df):
-    logger.info(raw_data)
-    logger.info(cust_id_df)
     raw_data_with_cid = merge(raw_data, cust_id_df, how='inner', left_on=['bill_to_nbr', 'source_system'],
                               right_on=['bill_to_nbr', 'source_system'])
     logger.info(raw_data_with_cid)
     raw_data_with_cid = raw_data_with_cid[['bill_to_nbr', 'file_nbr', 'customer_id', 'id']]
-    # logger.info(raw_data_with_cid)
     raw_data_with_cid = raw_data_with_cid.drop_duplicates(subset=['id'])
     raw_data_with_cid = raw_data_with_cid.set_index(['id'])
     raw_data_with_cid = raw_data_with_cid.sort_index()
-    print("PRINTING raw_data_with_cid")
     logger.info(raw_data_with_cid)
-    print("#######################")
     return raw_data_with_cid
 class SharedSecretFetchError(Exception): pass
