@@ -10,36 +10,25 @@ import psycopg2
 import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-
 sns_client = boto3.client('sns')
-event_map = {"shipment-info-change": os.environ["SHIPMENT_INFO_SNS_CHANGE_ARN"],
-             "shipment-info-full": os.environ["SHIPMENT_INFO_SNS_FULL_ARN"],
-             "milestone": "",
-             "milestone-full": "",
-             "invoice-change": "SNS_TEST_ARN",
-             "invoice-full": "SNS_TEST_ARN"
-             }
-
 
 def handler(event, context):
+    logger.info(event)
     if('existing' not in event):
         bucket = event['Records'][0]['s3']['bucket']['name']
         key = event['Records'][0]['s3']['object']['key']
+        end = '-diff.csv000'
+        event_topic = ((key.split("/dev-"))[1].split(end)[0])
         dataframe = get_s3_object(bucket, key)
-        if('dev-diff-shipment-info/dev-shipment-info-diff.csv000' in key):
+        if('shipment-info' in event_topic):
             diff_payload, full_payload = get_events_json_shipments(dataframe)
-        elif('dev-diff-shipment-info/dev-customer-invoices-diff.csv000' in key):
+        if('customer-invoices' in event_topic):
             diff_payload, full_payload = get_events_json_invoices(dataframe)
-        print("diff_payload")
-        print(diff_payload)
-        print("full_payload")
-        print(full_payload)
+        elif('shipment-milestone' in event_topic):
+            diff_payload, full_payload = get_events_json_milestones(dataframe)
         diff_list = include_shared_secret(diff_payload, 'change')
         full_list = include_shared_secret(full_payload, 'full')
         merged_list = full_list + diff_list
-        print("########MERGED LIST##########")
-        print(merged_list)
     else:
         merged_list = event['input']
 
@@ -49,7 +38,7 @@ def handler(event, context):
         count = 0
         for message in merged_list:
             index = merged_list.index(message)
-            sns_publish(message, 'shipment-info')
+            sns_publish(message, key)
             merged_list[index]['published'] = 'true'
             count += 1
             if (count >= 20):
@@ -66,7 +55,6 @@ def handler(event, context):
 
 def get_events_json_shipments(dataframe):
     try:
-        print("#############SHIPMENTS-INFO############")
         raw_data = ((dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')).astype({'bill_to_nbr': 'int32'})
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
         old_file_nbrs = list(old_data.file_nbr.unique())
@@ -97,11 +85,12 @@ def get_events_json_shipments(dataframe):
         json_obj_full = json.loads(full_payload.to_json(orient='records'))
         return json_obj, json_obj_full
     except Exception as e:
-        logging.exception("GetEventsJsonError: {}".format(e))
+        logging.exception("ShipmentInfoJSONError: {}".format(e))
 
 def get_events_json_invoices(dataframe):
     try:
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
+        raw_data['bill_to_nbr'] = raw_data['bill_to_nbr'].str.strip()
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
         old_file_nbrs = list(old_data.file_nbr.unique())
         new_file_nbrs = list(old_data.file_nbr.unique())
@@ -110,9 +99,7 @@ def get_events_json_invoices(dataframe):
         new_data = changed_data
         changed_data = changed_data.loc[changed_data['file_nbr'].isin(old_file_nbrs)]
         bill_to_numbers = raw_data.bill_to_nbr.unique()
-        bill_to_numbers = tuple([i for i in bill_to_numbers])
-        print("bill_to_numbers")
-        print(bill_to_numbers)
+        bill_to_numbers = tuple([i.strip() for i in bill_to_numbers])
         old_data = old_data.set_index(['id'])
         changed_data = changed_data.set_index(['id'])
         new_data = new_data.set_index(['id'])
@@ -135,13 +122,50 @@ def get_events_json_invoices(dataframe):
         json_obj_full = json.loads(full_payload.to_json(orient='records'))
         return json_obj, json_obj_full
     except Exception as e:
-        logging.exception("GetEventsJsonError: {}".format(e))
-
+        logging.exception("CustomerInvoicesJSONError: {}".format(e))
+def get_events_json_milestones(dataframe):
+    try:
+        raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
+        indexNames = raw_data[ raw_data['source_system'] == 'EE' ].index
+        raw_data.drop(indexNames , inplace=True)
+        old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
+        old_file_nbrs = list(old_data.file_nbr.unique())
+        changed_data = raw_data.loc[raw_data['record_type'] == 'NEW']
+        new_file_nbrs = list(changed_data.file_nbr.unique())
+        new_data = changed_data
+        changed_data = changed_data.loc[changed_data['file_nbr'].isin(old_file_nbrs)]
+        bill_to_numbers = raw_data.bill_to_nbr.unique()
+        bill_to_numbers = tuple([i for i in bill_to_numbers])
+        if (len(bill_to_numbers)==1):
+            bill_to_numbers = '('+bill_to_numbers[0]+')'
+        changed_data = changed_data.set_index(['id'])
+        new_data = new_data.set_index(['id'])
+        changed_data = changed_data.sort_index()
+        new_data = new_data.sort_index()
+        old_data = old_data.loc[old_data['file_nbr'].isin(new_file_nbrs)]
+        old_data = old_data.set_index(['id'])
+        old_data = old_data.sort_index()
+        diff = old_data.compare(changed_data)
+        diff.columns.set_levels(['old', 'new'], level=1, inplace=True)
+        db_cust_ids = get_cust_id(bill_to_numbers)
+        cust_id_df = DataFrame.from_records(db_cust_ids, columns=['customer_id', 'bill_to_nbr', 'source_system'])
+        raw_data_with_cid = merge_rawdata_with_customer_id(raw_data, cust_id_df)
+        final_diff = merge(raw_data_with_cid, diff, how='inner', on='id')
+        final_diff = final_diff.reset_index()
+        final_diff['SNS_FLAG'] = 'DIFF'
+        full_payload = merge(raw_data_with_cid, new_data, how='inner', on='id')
+        full_payload = full_payload.reset_index()
+        full_payload['SNS_FLAG'] = 'FULL'
+        json_obj = json.loads(final_diff.apply(lambda x: [x.dropna()], axis=1).to_json())
+        json_obj_full = json.loads(full_payload.to_json(orient='records'))
+        return json_obj, json_obj_full
+    except Exception as e:
+        logging.exception("ShipmentsMilestonesJSONError: {}".format(e))
 def get_s3_object(bucket, key):
     try:
         client = boto3.client('s3')
         response = client.get_object(Bucket=bucket, Key=key)
-        dataframe = read_csv(io.BytesIO(response['Body'].read()))
+        dataframe = read_csv(io.BytesIO(response['Body'].read()), dtype=str)
         return dataframe
     except Exception as e:
         logging.exception("S3GetObjectError: {}".format(e))
@@ -163,27 +187,23 @@ def get_cust_id(bill_to_numbers):
                            port=os.environ['PORT'], user=os.environ['USER'], password=os.environ['PASS'])
     con.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     cur = con.cursor()
-    cur.execute(f"select id,cust_nbr,source_system from public.api_token where cust_nbr in {bill_to_numbers}")
+    cur.execute(f"select id, cust_nbr, source_system from public.api_token where cust_nbr in {bill_to_numbers}")
     con.commit()
     x = cur.fetchall()
-    print("x")
-    print(x)
     cust_id_df = DataFrame.from_records(x, columns=['customer_id', 'bill_to_nbr', 'source_system'])
     cur.close()
     con.close()
     return cust_id_df
 def get_topic_arn(event_type):
-    if ("shipment-info" in event_type):
-        change_topic_arn = event_map["shipment-info-change"]
-        full_topic_arn = event_map["shipment-info-full"]
-    elif ("invoice" in event_type):
-        change_topic_arn = event_map["invoice-change"]
-        full_topic_arn = event_map["invoice-full"]
-    elif ("milestone" in event_type):
-        change_topic_arn = event_map["milestone-change"]
-        full_topic_arn = event_map["milestone-full"]
-
-    return change_topic_arn, full_topic_arn
+    try:
+        ddbclient = boto3.client('dynamodb')
+        change_topic_arn_response = ddbclient.get_item(TableName=os.environ["PUBLISH_ARN_DYNAMO_TABLE"], Key={'Event_Name': {'S': event_type}, 'Event_Type': {'S': 'change'}})
+        change_topic_arn = change_topic_arn_response['Item']['ARN']['S']
+        full_topic_arn_response = ddbclient.get_item(TableName=os.environ["PUBLISH_ARN_DYNAMO_TABLE"], Key={'Event_Name': {'S': event_type}, 'Event_Type': {'S': 'full'}})
+        full_topic_arn = full_topic_arn_response['Item']['ARN']['S']
+        return change_topic_arn, full_topic_arn
+    except Exception as e:
+        logging.exception("FetchingPublishARNsError: {}".format(e))
 def sns_publish(message, event_type):
     try:
         change_topic_arn, full_topic_arn = get_topic_arn(event_type)
@@ -202,7 +222,6 @@ def sns_publish(message, event_type):
                             }})
     except Exception as e:
         logging.exception("SNSPublishError: {}".format(e))
-
 def include_shared_secret(payload, payload_type):
     json_list = []
     try:
@@ -223,13 +242,14 @@ def include_shared_secret(payload, payload_type):
         logging.exception("PublishMessageError: {}".format(e))
         raise SharedSecretFetchError
 def merge_rawdata_with_customer_id(raw_data, cust_id_df):
-    raw_data_with_cid = merge(raw_data, cust_id_df, how='inner', left_on=['bill_to_nbr', 'source_system'],
-                              right_on=['bill_to_nbr', 'source_system'])
-    logger.info(raw_data_with_cid)
-    raw_data_with_cid = raw_data_with_cid[['bill_to_nbr', 'file_nbr', 'customer_id', 'id']]
-    raw_data_with_cid = raw_data_with_cid.drop_duplicates(subset=['id'])
-    raw_data_with_cid = raw_data_with_cid.set_index(['id'])
-    raw_data_with_cid = raw_data_with_cid.sort_index()
-    logger.info(raw_data_with_cid)
-    return raw_data_with_cid
+    try:
+        raw_data_with_cid = merge(raw_data, cust_id_df, how='inner', left_on=['bill_to_nbr', 'source_system'],
+                                right_on=['bill_to_nbr', 'source_system'])
+        raw_data_with_cid = raw_data_with_cid[['bill_to_nbr', 'file_nbr', 'customer_id', 'id']]
+        raw_data_with_cid = raw_data_with_cid.drop_duplicates(subset=['id'])
+        raw_data_with_cid = raw_data_with_cid.set_index(['id'])
+        raw_data_with_cid = raw_data_with_cid.sort_index()
+        return raw_data_with_cid
+    except Exception as e:
+        logging.exception("RawDataCustomerIDMergeError: {}".format(e))
 class SharedSecretFetchError(Exception): pass
