@@ -15,7 +15,6 @@ InternalErrorMessage = "Internal Error."
 
 def handler(event, context):
     logger.info("Event is: {}".format(json.dumps(event)))
-    logger.info("Event body is: {}".format(json.dumps(event['body'])))
     customer_id = event['enhancedAuthContext']['customerId']    
     validate_input(event['body'])
 
