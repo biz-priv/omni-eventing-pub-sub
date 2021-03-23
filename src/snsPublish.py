@@ -10,8 +10,8 @@ import psycopg2
 
 
 sns_client = boto3.client('sns')
-event_map = {"shipment-info-change": os.environ["SNSARN"],
-             "shipment-info-full": os.environ["SNSARN"],
+event_map = {"shipment-info-change": os.environ["SHIPMENT_INFO_SNS_CHANGE_ARN"],
+             "shipment-info-full": os.environ["SHIPMENT_INFO_SNS_FULL_ARN"],
              "milestone": "",
              "milestone-full": "",
              "invoice-change": "",
@@ -98,7 +98,7 @@ def get_shared_secret(cust_id):
         cust_id = str(cust_id)
         client = boto3.client('dynamodb')
         response = client.get_item(TableName=os.environ["DDBTABLE"],
-            Key={'Customer_Id': {'S': cust_id}, 'Event_Type': {'S': 'ShipmentDueDate'}})
+            Key={'Customer_Id': {'S': cust_id}, 'Event_Type': {'S': 'ShipmentUpdate'}})
         if 'Item' in response:
             return response['Item']['Shared_Secret']['S']
         else:

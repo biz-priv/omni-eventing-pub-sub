@@ -15,7 +15,6 @@ InternalErrorMessage = "Internal Error."
 
 def handler(event, context):
     logger.info("Event is: {}".format(json.dumps(event)))
-
     customer_id = event['enhancedAuthContext']['customerId']    
     validate_input(event['body'])
 
@@ -28,19 +27,19 @@ def handler(event, context):
         raise InputError(json.dumps({"httpStatus": 404, "message":"Subscription does not exist."}))
     
     try:
-        sns_client.unsubscribe(SubscriptionArn=response['Items'][0]['Subscription_arn']['S'])            
-        success_message = {"message": "Unsubscribed successfully."}
-        return success_message
+        sns_client.unsubscribe(SubscriptionArn=response['Items'][0]['Subscription_arn']['S'])
     except Exception as e:
         logging.exception("DeleteSubScriptionError: {}".format(e))
         raise DeleteSubScriptionError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."}))
-
+    
     try:
         dynamo_delete(customer_id,event_type)
+        success_message = {"message": "Unsubscribed successfully."}
+        return success_message
     except Exception as e:
         logging.exception("DeleteError: {}".format(e))
-        raise DeleteError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."}))    
-
+        raise DeleteError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."}))
+    
 def dynamo_get(customer_id, event_type):
     try:
         response = client.query(
@@ -52,19 +51,18 @@ def dynamo_get(customer_id, event_type):
         return response
     except Exception as e:
         logging.exception("DynamoGetError: {}".format(e))
-        raise DynamoGetError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))    
+        raise DynamoGetError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))
 
 
 def dynamo_delete(customer_id, event_type):
     try:
         client.delete_item(
             TableName=os.environ['CUSTOMER_PREFERENCE_TABLE'],
-            KeyConditionExpression='Customer_Id = :Customer_Id and Event_Type = :Event_Type',
-            ExpressionAttributeValues= {":Customer_Id": {"S": customer_id}, 
-                                        ":Event_Type": {"S":event_type}})
+            Key={'Customer_Id': {'S': customer_id},
+                'Event_Type': {'S': event_type}})
     except Exception as e:
         logging.exception("DynamoDeleteError: {}".format(e))
-        raise DynamoDeleteError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))    
+        raise DynamoDeleteError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"}))
 
 
 def validate_input(payload):

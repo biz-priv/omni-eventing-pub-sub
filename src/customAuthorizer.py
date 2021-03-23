@@ -40,6 +40,7 @@ def generate_policy(principal_id, effect, method_arn, customer_id = None, messag
 def handler(event, context):
     try:        
         logger.info("Event: {}".format(json.dumps(event)))
+        logger.info("Event Method ARN is: {}".format(json.dumps(event["methodArn"])))
         api_key = event['headers']['x-api-key']
     except Exception as e:
         logging.exception("ApiKeyError: {}".format(e))
@@ -49,11 +50,11 @@ def handler(event, context):
             'ApiKey = :apikey', {":apikey": {"S": api_key}})
     
     customer_id = validate_dynamo_query_response(response, event, None, "Customer Id not found.")
-    if type(customer_id) != str:
-        return customer_id
     
-    if "/webhook" in event["methodArn"]:
-        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
+    if "POST/webhook" in event["methodArn"]:
+        return generate_policy("postPolicyId123", 'Allow', event["methodArn"], customer_id)
+    elif "DELETE/webhook" in event["methodArn"]:
+        return generate_policy("deletePolicyId456", 'Allow', event["methodArn"], customer_id)
     if "GET/events" in event["methodArn"]:
         return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
     if customer_id != "admin" and "POST/events" in event["methodArn"]:

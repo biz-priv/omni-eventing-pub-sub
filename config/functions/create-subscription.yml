@@ -34,6 +34,6 @@ function:
     include:
     - src/createSubscription.py
   environment: 
-    EVENTING_TOPICS_TABLE: ${ssm:/omni/eventing/topics/table}
-    CUSTOMER_PREFERENCE_TABLE : ${ssm:/omni/eventing/preferences/table}
+    EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}
+    CUSTOMER_PREFERENCE_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}
     REGION: ${self:provider.region}

@@ -15,8 +15,7 @@ logger.setLevel(logging.INFO)
 InternalErrorMessage = "Internal Error."
 
 def handler(event, context):
-    logger.info("Event body is: {}".format(json.dumps(event['body'])))
-
+    logger.info("Event is: {}".format(json.dumps(event)))
     customer_id = event['enhancedAuthContext']['customerId']    
     validate_input(event['body'])
 
@@ -61,7 +60,7 @@ def handler(event, context):
 
 def subscribe_to_topic(topic_arn,endpoint,customer_id):
     try:
-        response = sns_client.subscribe(TopicArn=topic_arn, Protocol="email",Endpoint=endpoint,
+        response = sns_client.subscribe(TopicArn=topic_arn, Protocol="https",Endpoint=endpoint,
                                         Attributes={"FilterPolicy": json.dumps({"customer_id": [customer_id]})},
                                         ReturnSubscriptionArn=True)
         return response
