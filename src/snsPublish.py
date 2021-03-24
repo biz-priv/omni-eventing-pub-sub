@@ -194,19 +194,19 @@ def get_cust_id(bill_to_numbers):
     cur.close()
     con.close()
     return cust_id_df
-def get_topic_arn(event_type):
+
+def get_topic_arn(event_type, preference):
     try:
-        ddbclient = boto3.client('dynamodb')
-        change_topic_arn_response = ddbclient.get_item(TableName=os.environ["PUBLISH_ARN_DYNAMO_TABLE"], Key={'Event_Name': {'S': event_type}, 'Event_Type': {'S': 'change'}})
-        change_topic_arn = change_topic_arn_response['Item']['ARN']['S']
-        full_topic_arn_response = ddbclient.get_item(TableName=os.environ["PUBLISH_ARN_DYNAMO_TABLE"], Key={'Event_Name': {'S': event_type}, 'Event_Type': {'S': 'full'}})
-        full_topic_arn = full_topic_arn_response['Item']['ARN']['S']
-        return change_topic_arn, full_topic_arn
+        client = boto3.client('dynamodb')
+        response = client.get_item(TableName=os.environ["PUBLISH_ARN_DYNAMO_TABLE"], Key={'Event_Name': {'S': event_type}, 'Event_Type': {'S': preference}})
+        return response['Item']['ARN']['S']
     except Exception as e:
-        logging.exception("FetchingPublishARNsError: {}".format(e))
+        logging.exception("PublishARNFetchError: {}".format(e))
+
 def sns_publish(message, event_type):
     try:
-        change_topic_arn, full_topic_arn = get_topic_arn(event_type)
+        change_topic_arn = get_topic_arn(event_type, "change")        
+        full_topic_arn = get_topic_arn(event_type, "full")
         if message["SNS_FLAG"]=="DIFF":
             topic_arn = change_topic_arn
         elif message["SNS_FLAG"]=="FULL":

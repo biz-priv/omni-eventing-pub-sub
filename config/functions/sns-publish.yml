@@ -31,5 +31,4 @@ function:
     PORT: ${ssm:/omni-dw/${self:provider.stage}/db/port}
     SHIPMENT_INFO_SNS_FULL_ARN: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/full/arn}
     SHIPMENT_INFO_SNS_CHANGE_ARN: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/change/arn}
-    SNS_TEST_ARN: arn:aws:sns:us-east-1:332281781429:test_topic_bizcloud_sns_eventing
     PUBLISH_ARN_DYNAMO_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/publisharn/table/name} 
