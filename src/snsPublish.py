@@ -15,8 +15,11 @@ sns_client = boto3.client('sns')
 def handler(event, context):
     logger.info(event)
     if('existing' not in event):
-        bucket = event['Records'][0]['s3']['bucket']['name']
-        key = event['Records'][0]['s3']['object']['key']
+        try:
+            bucket = event['Records'][0]['s3']['bucket']['name']
+            key = event['Records'][0]['s3']['object']['key']
+        except Exception as e:
+            logging.exception("EventObjectNameFetchError: {}".format(e))
         end = '-diff.csv000'
         event_topic = ((key.split("/dev-"))[1].split(end)[0])
         dataframe = get_s3_object(bucket, key)
@@ -38,7 +41,7 @@ def handler(event, context):
         count = 0
         for message in merged_list:
             index = merged_list.index(message)
-            sns_publish(message, key)
+            sns_publish(message, event_topic)
             merged_list[index]['published'] = 'true'
             count += 1
             if (count >= 20):
@@ -55,17 +58,28 @@ def handler(event, context):
 
 def get_events_json_shipments(dataframe):
     try:
-        raw_data = ((dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')).astype({'bill_to_nbr': 'int32'})
+        print("###########shipment-info#####################")
+        # raw_data = ((dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')).astype({'bill_to_nbr': 'int32'})
+        raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
+        raw_data['bill_to_nbr'] = raw_data['bill_to_nbr'].str.strip()
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
         old_file_nbrs = list(old_data.file_nbr.unique())
         changed_data = raw_data.loc[raw_data['record_type'] == 'NEW']
+        new_file_nbrs = list(changed_data.file_nbr.unique())
         new_data = changed_data
         changed_data = changed_data.loc[changed_data['file_nbr'].isin(old_file_nbrs)]
         bill_to_numbers = raw_data.bill_to_nbr.unique()
-        bill_to_numbers = tuple([int(i) for i in bill_to_numbers])
-        old_data = old_data.set_index(['file_nbr'])
-        changed_data = changed_data.set_index(['file_nbr'])
-        new_data = new_data.set_index(['file_nbr'])
+        # bill_to_numbers = tuple([int(i) for i in bill_to_numbers])
+        bill_to_numbers = tuple([i.strip() for i in bill_to_numbers])
+        if (len(bill_to_numbers)==1):
+            bill_to_numbers = '('+bill_to_numbers[0]+')'
+        # old_data = old_data.set_index(['file_nbr'])
+        # changed_data = changed_data.set_index(['file_nbr'])
+        # new_data = new_data.set_index(['file_nbr'])
+        old_data = old_data.set_index(['id'])
+        changed_data = changed_data.set_index(['id'])
+        new_data = new_data.set_index(['id'])
+        old_data = old_data.loc[old_data['file_nbr'].isin(new_file_nbrs)]
         old_data = old_data.sort_index()
         changed_data = changed_data.sort_index()
         new_data = new_data.sort_index()
@@ -73,7 +87,7 @@ def get_events_json_shipments(dataframe):
         diff.columns.set_levels(['old', 'new'], level=1, inplace=True)
         db_cust_ids = get_cust_id(bill_to_numbers)
         cust_id_df = DataFrame.from_records(db_cust_ids, columns=['customer_id', 'bill_to_nbr', 'source_system'])
-        cust_id_df = cust_id_df.astype({'bill_to_nbr': 'int32'})
+        # cust_id_df = cust_id_df.astype({'bill_to_nbr': 'int32'})
         raw_data_with_cid = merge_rawdata_with_customer_id(raw_data, cust_id_df)
         final_diff = merge(raw_data_with_cid, diff, how='inner', on='file_nbr')
         final_diff = final_diff.reset_index()
@@ -89,17 +103,19 @@ def get_events_json_shipments(dataframe):
 
 def get_events_json_invoices(dataframe):
     try:
+        print("##############customer-invoices##################")
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
         raw_data['bill_to_nbr'] = raw_data['bill_to_nbr'].str.strip()
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
         old_file_nbrs = list(old_data.file_nbr.unique())
-        new_file_nbrs = list(old_data.file_nbr.unique())
         changed_data = raw_data.loc[raw_data['record_type'] == 'NEW']
         new_file_nbrs = list(changed_data.file_nbr.unique())
         new_data = changed_data
         changed_data = changed_data.loc[changed_data['file_nbr'].isin(old_file_nbrs)]
         bill_to_numbers = raw_data.bill_to_nbr.unique()
         bill_to_numbers = tuple([i.strip() for i in bill_to_numbers])
+        if (len(bill_to_numbers)==1):
+            bill_to_numbers = '('+bill_to_numbers[0]+')'
         old_data = old_data.set_index(['id'])
         changed_data = changed_data.set_index(['id'])
         new_data = new_data.set_index(['id'])
@@ -110,8 +126,8 @@ def get_events_json_invoices(dataframe):
         diff = old_data.compare(changed_data)
         diff.columns.set_levels(['old', 'new'], level=1, inplace=True)
         db_cust_ids = get_cust_id(bill_to_numbers)
-        cust_id_df = DataFrame.from_records(db_cust_ids, columns=['customer_id', 'bill_to_nbr', 'source_system'])
-        raw_data_with_cid = merge_rawdata_with_customer_id(raw_data, cust_id_df)
+        # cust_id_df = DataFrame.from_records(db_cust_ids, columns=['customer_id', 'bill_to_nbr', 'source_system'])
+        raw_data_with_cid = merge_rawdata_with_customer_id(raw_data, db_cust_ids)
         final_diff = merge(raw_data_with_cid, diff, how='inner', on='id')
         final_diff = final_diff.reset_index()
         final_diff['SNS_FLAG'] = 'DIFF'
@@ -125,6 +141,7 @@ def get_events_json_invoices(dataframe):
         logging.exception("CustomerInvoicesJSONError: {}".format(e))
 def get_events_json_milestones(dataframe):
     try:
+        print("###############shipment-milestones#################")
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
         indexNames = raw_data[ raw_data['source_system'] == 'EE' ].index
         raw_data.drop(indexNames , inplace=True)
@@ -135,7 +152,8 @@ def get_events_json_milestones(dataframe):
         new_data = changed_data
         changed_data = changed_data.loc[changed_data['file_nbr'].isin(old_file_nbrs)]
         bill_to_numbers = raw_data.bill_to_nbr.unique()
-        bill_to_numbers = tuple([i for i in bill_to_numbers])
+        # bill_to_numbers = tuple([i for i in bill_to_numbers])
+        bill_to_numbers = tuple([i.strip() for i in bill_to_numbers])
         if (len(bill_to_numbers)==1):
             bill_to_numbers = '('+bill_to_numbers[0]+')'
         changed_data = changed_data.set_index(['id'])
