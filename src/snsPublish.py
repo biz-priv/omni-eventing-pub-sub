@@ -25,12 +25,21 @@ def handler(event, context):
         dataframe = get_s3_object(bucket, key)
         if('shipment-info' in event_topic):
             diff_payload, full_payload = get_events_json_shipments(dataframe)
+            sns_event = 'ShipmentUpdates'
+            print(sns_event)
+            print("#################sns_event#####################")
         if('customer-invoices' in event_topic):
             diff_payload, full_payload = get_events_json_invoices(dataframe)
+            sns_event = 'CustomerInvoices'
+            print(sns_event)
+            print("#################sns_event#####################")
         elif('shipment-milestone' in event_topic):
             diff_payload, full_payload = get_events_json_milestones(dataframe)
-        diff_list = include_shared_secret(diff_payload, 'change')
-        full_list = include_shared_secret(full_payload, 'full')
+            sns_event = 'Milestone'
+            print(sns_event)
+            print("#################sns_event#####################")
+        diff_list = include_shared_secret(diff_payload, 'change', sns_event)
+        full_list = include_shared_secret(full_payload, 'full', sns_event)
         merged_list = full_list + diff_list
     else:
         merged_list = event['input']
@@ -41,7 +50,7 @@ def handler(event, context):
         count = 0
         for message in merged_list:
             index = merged_list.index(message)
-            sns_publish(message, event_topic)
+            sns_publish(message, sns_event)
             merged_list[index]['published'] = 'true'
             count += 1
             if (count >= 20):
@@ -187,12 +196,12 @@ def get_s3_object(bucket, key):
         return dataframe
     except Exception as e:
         logging.exception("S3GetObjectError: {}".format(e))
-def get_shared_secret(cust_id):
+def get_shared_secret(cust_id, event_type):
     try:
         cust_id = str(cust_id)
         client = boto3.client('dynamodb')
-        response = client.get_item(TableName=os.environ["DDBTABLE"],
-            Key={'Customer_Id': {'S': cust_id}, 'Event_Type': {'S': 'ShipmentUpdate'}})
+        response = client.get_item(TableName=os.environ["CUSTOMER_PREFERENCE_TABLE"],
+            Key={'Customer_Id': {'S': cust_id}, 'Event_Type': {'S': event_type}})
         if 'Item' in response:
             return response['Item']['Shared_Secret']['S']
         else:
@@ -213,18 +222,28 @@ def get_cust_id(bill_to_numbers):
     con.close()
     return cust_id_df
 
-def get_topic_arn(event_type, preference):
+def get_topic_arn(event_type):
     try:
         client = boto3.client('dynamodb')
-        response = client.get_item(TableName=os.environ["PUBLISH_ARN_DYNAMO_TABLE"], Key={'Event_Name': {'S': event_type}, 'Event_Type': {'S': preference}})
-        return response['Item']['ARN']['S']
+        response = client.get_item(TableName=os.environ["EVENTING_TOPICS_TABLE"], Key={'Event_Name': {'S': event_type}})
+        change_topic_arn = response['Item']['Event_Payload_Topic_Arn']['S']
+        full_topic_arn = response['Item']['Full_Payload_Topic_Arn']['S']
+        print(change_topic_arn)
+        print(full_topic_arn)
+        print("###############################################################################")
+        return change_topic_arn, full_topic_arn
     except Exception as e:
         logging.exception("PublishARNFetchError: {}".format(e))
+    # try:
+    #     client = boto3.client('dynamodb')
+    #     response = client.get_item(TableName=os.environ["EVENTING_TOPICS_TABLE"], Key={'Event_Name': {'S': event_type}, 'Event_Type': {'S': preference}})
+    #     return response['Item']['ARN']['S']
+    # except Exception as e:
+    #     logging.exception("PublishARNFetchError: {}".format(e))
 
-def sns_publish(message, event_type):
+def sns_publish(message, sns_event):
     try:
-        change_topic_arn = get_topic_arn(event_type, "change")        
-        full_topic_arn = get_topic_arn(event_type, "full")
+        change_topic_arn, full_topic_arn = get_topic_arn(sns_event)        
         if message["SNS_FLAG"]=="DIFF":
             topic_arn = change_topic_arn
         elif message["SNS_FLAG"]=="FULL":
@@ -240,7 +259,7 @@ def sns_publish(message, event_type):
                             }})
     except Exception as e:
         logging.exception("SNSPublishError: {}".format(e))
-def include_shared_secret(payload, payload_type):
+def include_shared_secret(payload, payload_type, event_type):
     json_list = []
     try:
         for record in payload:
@@ -249,7 +268,7 @@ def include_shared_secret(payload, payload_type):
             elif payload_type == 'change':
                 customer_id = payload[record][0]['customer_id']
                 record = payload[record][0]
-            shared_secret = get_shared_secret(customer_id)
+            shared_secret = get_shared_secret(customer_id, event_type)
             if shared_secret is not None:
                 shared_secret = bytes(shared_secret, 'utf-8')
                 json_body = json.dumps(record).encode('utf-8')

@@ -27,8 +27,6 @@ function:
     USER: ${ssm:/omni-dw/${self:provider.stage}/db/user~true}
     HOST: ${ssm:/omni-dw/${self:provider.stage}/db/host~true}
     PASS: ${ssm:/omni-dw/${self:provider.stage}/db/password~true}
-    DDBTABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}
+    CUSTOMER_PREFERENCE_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}
     PORT: ${ssm:/omni-dw/${self:provider.stage}/db/port}
-    SHIPMENT_INFO_SNS_FULL_ARN: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/full/arn}
-    SHIPMENT_INFO_SNS_CHANGE_ARN: ${ssm:/omni/${self:provider.stage}/eventing/sns/topic/shipmentUpdate/change/arn}
-    PUBLISH_ARN_DYNAMO_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/publisharn/table/name} 
+    EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name} 
