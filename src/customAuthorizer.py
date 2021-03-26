@@ -40,7 +40,6 @@ def generate_policy(principal_id, effect, method_arn, customer_id = None, messag
 def handler(event, context):
     try:        
         logger.info("Event: {}".format(json.dumps(event)))
-        logger.info("Event Method ARN is: {}".format(json.dumps(event["methodArn"])))
         api_key = event['headers']['x-api-key']
     except Exception as e:
         logging.exception("ApiKeyError: {}".format(e))
