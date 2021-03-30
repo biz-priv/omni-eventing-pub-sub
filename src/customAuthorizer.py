@@ -21,8 +21,7 @@ def generate_policy(principal_id, effect, customer_id = None, message = None):
                     'Sid': 'ApiAccess',
                     'Action': 'execute-api:Invoke',
                     'Effect': effect,
-                    'Resource': *
-                    # 'Resource': method_arn
+                    'Resource': "*"
                 }
             ]
         }
