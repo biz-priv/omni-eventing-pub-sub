@@ -1,5 +1,5 @@
 function:
-  handler: src/s3Event.handler
+  handler: ${self:provider.alias}/src/s3Event.handler
   name: ${self:service}-s3-event-trigger-${self:provider.stage}
   description: omni eventing trigger state machine - events from s3 - ${self:provider.stage}
   memorySize: 2048
@@ -8,7 +8,7 @@ function:
     exclude:
     - '**/*'
     include:
-    - src/s3Event.py
+    - ${self:provider.alias}/src/s3Event.py
 
   events:
     - s3:

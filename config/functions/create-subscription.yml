@@ -1,11 +1,11 @@
 ---
 function:
-  handler: src/createSubscription.handler
+  handler: ${self:provider.alias}/src/createSubscription.handler
   name: ${self:service}-create-subscription-${self:provider.stage}
   description: create subscription Webhook API - ${self:provider.stage}
   events: 
     - http:  
-        path: /webhook
+        path: /v1/webhook
         method: POST
         integration: lambda
         private: true
@@ -32,7 +32,7 @@ function:
     exclude:
     - '**/*'
     include:
-    - src/createSubscription.py
+    - ${self:provider.alias}/src/createSubscription.py
   environment: 
     EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}
     CUSTOMER_PREFERENCE_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}

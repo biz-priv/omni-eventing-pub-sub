@@ -5,6 +5,7 @@ provider:
   runtime: python3.7
   versionFunctions: false
   stage: ${opt:stage, 'dev'}
+  alias: ${opt:alias, 'v1'}
   region: us-east-1
   timeout: 30
   memorySize: 256
@@ -52,6 +53,7 @@ plugins:
   - serverless-plugin-multiple-responses
   - serverless-step-functions
   - serverless-pseudo-parameters
+  - serverless-aws-alias
 package:
   individually: true
   exclude:

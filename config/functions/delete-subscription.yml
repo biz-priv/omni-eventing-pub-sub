@@ -1,11 +1,11 @@
 ---
 function:
-  handler: src/deleteSubscription.handler
+  handler: ${self:provider.alias}/src/deleteSubscription.handler
   name: ${self:service}-delete-subscription-${self:provider.stage}
   description: delete subscription Webhook API - ${self:provider.stage}
   events: 
     - http:  
-        path: /webhook
+        path: /v1/webhook
         method: DELETE
         integration: lambda
         private: true
@@ -37,7 +37,7 @@ function:
     exclude:
     - '**/*'
     include:
-    - src/deleteSubscription.py
+    - ${self:provider.alias}/src/deleteSubscription.py
   environment: 
     EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}
     CUSTOMER_PREFERENCE_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}

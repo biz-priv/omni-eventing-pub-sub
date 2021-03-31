@@ -1,11 +1,11 @@
 ---
 function:
-  handler: src/getEventTypes.handler
+  handler: ${self:provider.alias}/src/getEventTypes.handler
   name: ${self:service}-get-event-types-${self:provider.stage}
   description: get all events types API - ${self:provider.stage}
   events: 
     - http:  
-        path: /events
+        path: /v1/events
         method: GET
         integration: lambda
         private: true
@@ -27,7 +27,7 @@ function:
     exclude:
     - '**/*'
     include:
-    - src/getEventTypes.py
+    - ${self:provider.alias}/src/getEventTypes.py
   environment: 
     EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}
     REGION: ${self:provider.region}

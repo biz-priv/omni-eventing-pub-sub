@@ -23,6 +23,7 @@
     "serverless-plugin-multiple-responses": "^1.0.0"
   },
   "devDependencies": {
+    "serverless-aws-alias": "^1.8.0",
     "serverless-pseudo-parameters": "^2.5.0",
     "serverless-step-functions": "^2.29.0"
   }
