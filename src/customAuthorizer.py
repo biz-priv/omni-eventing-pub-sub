@@ -9,9 +9,9 @@ session = botocore.session.get_session()
 PolicyId="bizCloud|a1b2"
 InternalErrorMessage="Internal Error."
 
-def generate_policy(principal_id, effect, method_arn, customer_id = None, message = None):
+def generate_policy(principal_id, effect, customer_id = None, message = None):
     try:
-        print ("Inserting "+effect+" policy on API Gateway")
+        logger.info("Inserting "+effect+" policy on API Gateway")
         policy = {}
         policy["principalId"] = principal_id
         policy_document = {
@@ -21,7 +21,7 @@ def generate_policy(principal_id, effect, method_arn, customer_id = None, messag
                     'Sid': 'ApiAccess',
                     'Action': 'execute-api:Invoke',
                     'Effect': effect,
-                    'Resource': method_arn
+                    'Resource': "*"
                 }
             ]
         }
@@ -40,7 +40,6 @@ def generate_policy(principal_id, effect, method_arn, customer_id = None, messag
 def handler(event, context):
     try:        
         logger.info("Event: {}".format(json.dumps(event)))
-        logger.info("Event Method ARN is: {}".format(json.dumps(event["methodArn"])))
         api_key = event['headers']['x-api-key']
     except Exception as e:
         logging.exception("ApiKeyError: {}".format(e))
@@ -52,15 +51,15 @@ def handler(event, context):
     customer_id = validate_dynamo_query_response(response, event, None, "Customer Id not found.")
     
     if "POST/webhook" in event["methodArn"]:
-        return generate_policy("postPolicyId123", 'Allow', event["methodArn"], customer_id)
+        return generate_policy("postPolicyId123", 'Allow', customer_id)
     elif "DELETE/webhook" in event["methodArn"]:
-        return generate_policy("deletePolicyId456", 'Allow', event["methodArn"], customer_id)
+        return generate_policy("deletePolicyId456", 'Allow',  customer_id)
     if "GET/events" in event["methodArn"]:
-        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
+        return generate_policy(PolicyId, 'Allow',  customer_id)
     if customer_id != "admin" and "POST/events" in event["methodArn"]:
-        return generate_policy(PolicyId, 'Deny', event["methodArn"], customer_id, message = "API can only be accessed by admins. Contact support and request admin credentials.")
+        return generate_policy(PolicyId, 'Deny', customer_id, message = "API can only be accessed by admins. Contact support and request admin credentials.")
     else:
-        return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
+        return generate_policy(PolicyId, 'Allow', customer_id)
 
 def validate_dynamo_query_response(response, event, customer_id=None, message=None):
     try:
