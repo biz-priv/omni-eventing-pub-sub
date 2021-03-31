@@ -291,4 +291,4 @@ def merge_rawdata_with_customer_id(raw_data, cust_id_df):
     except Exception as e:
         logging.exception("RawDataCustomerIDMergeError: {}".format(e))
 class SharedSecretFetchError(Exception):
-     pass
+    pass
