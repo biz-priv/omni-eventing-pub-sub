@@ -58,27 +58,15 @@ def handler(event, context):
     success_message = {"message": "Subscription successfully added"}
     return success_message
 
-# def subscribe_to_topic(topic_arn,endpoint,customer_id):
-#     try:
-#         response = sns_client.subscribe(TopicArn=topic_arn, Protocol="https",Endpoint=endpoint,
-#                                         Attributes={"FilterPolicy": json.dumps({"customer_id": [customer_id]})},
-#                                         ReturnSubscriptionArn=True)
-#         return response
-#     except Exception as e:
-#         logging.exception("SubscribeToTopicError: {}".format(e))
-#         raise SubscribeToTopicError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
-
-
 def subscribe_to_topic(topic_arn,endpoint,customer_id):
     try:
-        response = sns_client.subscribe(TopicArn=topic_arn, Protocol="email",Endpoint=endpoint,
+        response = sns_client.subscribe(TopicArn=topic_arn, Protocol="https",Endpoint=endpoint,
                                         Attributes={"FilterPolicy": json.dumps({"customer_id": [customer_id]})},
                                         ReturnSubscriptionArn=True)
         return response
     except Exception as e:
         logging.exception("SubscribeToTopicError: {}".format(e))
         raise SubscribeToTopicError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
-
 
 def dynamo_get(customer_id, event_type):
     try:
@@ -140,8 +128,8 @@ def validate_input(payload):
         validate(instance=payload,schema=schema)
     except jsonschema.exceptions.ValidationError as e:
         raise InputError(json.dumps({"httpStatus": 400, "message":e.message}))
-    # if not validators.url(payload['Endpoint']) or not pydash.strings.starts_with(payload['Endpoint'],"https"):
-    #     raise InputError(json.dumps({"httpStatus": 400, "message":"Only Valid HTTPS endpoints are accepted"}))
+    if not validators.url(payload['Endpoint']) or not pydash.strings.starts_with(payload['Endpoint'],"https"):
+        raise InputError(json.dumps({"httpStatus": 400, "message":"Only Valid HTTPS endpoints are accepted"}))
     
         
 class ValidationError(Exception): pass    
