@@ -54,6 +54,7 @@ plugins:
   - serverless-step-functions
   - serverless-pseudo-parameters
   - serverless-aws-alias
+  - serverless-plugin-existing-s3
 package:
   individually: true
   exclude:
@@ -64,14 +65,14 @@ functions:
   custom-authorizer: ${file(config/functions/custom-authorizer.yml):function}
   get-event-types: ${file(config/functions/get-event-types.yml):function}
   datapipeline-diff: ${file(config/functions/datapipeline-diff.yml):function}
-#   create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
-#   delete-subscription: ${file(config/functions/delete-subscription.yml):function}
-#   sns-publish: ${file(config/functions/sns-publish.yml):function}
-#   s3-event: ${file(config/functions/s3-event.yml):function}
+  create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
+  delete-subscription: ${file(config/functions/delete-subscription.yml):function}
+  sns-publish: ${file(config/functions/sns-publish.yml):function}
+  s3-event: ${file(config/functions/s3-event.yml):function}
 
-# stepFunctions:
-#   stateMachines:
-#     sns-publish-state-machine: ${file(config/step-functions/sns-publish-state-machine.yml):stateMachine}
+stepFunctions:
+  stateMachines:
+    sns-publish-state-machine: ${file(config/step-functions/sns-publish-state-machine.yml):stateMachine}
 
 resources:
   Resources:
