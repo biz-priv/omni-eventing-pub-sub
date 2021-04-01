@@ -1,5 +1,5 @@
 function:
-  handler: ${self:provider.alias}/src/s3Event.handler
+  handler: ${self:custom.alias}/src/s3Event.handler
   name: ${self:service}-s3-event-trigger-${self:provider.stage}
   description: omni eventing trigger state machine - events from s3 - ${self:provider.stage}
   memorySize: 2048
@@ -8,15 +8,15 @@ function:
     exclude:
     - '**/*'
     include:
-    - ${self:provider.alias}/src/s3Event.py
+    - ${self:custom.alias}/src/s3Event.py
 
-  events:
-    - s3:
-        bucket: dw-ps-dev
-        event: s3:ObjectCreated:*
-        rules:
-          - prefix: dev-diff-shipment-info/
-          - suffix: .csv000
-        existing: true
+  # events:
+  #   - s3:
+  #       bucket: dw-ps-dev
+  #       event: s3:ObjectCreated:*
+  #       rules:
+  #         - prefix: dev-diff-shipment-info/
+  #         - suffix: .csv000
+  #       existing: true
   environment:
     SM_ARN: arn:aws:states:${self:custom.${self:provider.stage}.region}:${self:custom.${self:provider.stage}.account}:stateMachine:omni-eventing-sns-publish-state-machine-${self:provider.stage}

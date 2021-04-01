@@ -1,6 +1,6 @@
 function:
   name: ${self:service}-diff-pipeline-${self:service}
-  handler: ${self:provider.alias}/src/datapipelineDiff.handler
+  handler: ${self:custom.alias}/src/datapipelineDiff.handler
   events:
     - sns: 
         arn: ${ssm:/omni/${self:provider.stage}/eventing/sns/diff-data-pipeline/arn}
@@ -8,7 +8,7 @@ function:
     exclude:
     - '**/*'
     include:
-    - ${self:provider.alias}/src/datapipelineDiff.py
+    - ${self:custom.alias}/src/datapipelineDiff.py
 
   environment:
     DBNAME: ${ssm:/omni-dw/${self:provider.stage}/db/name}

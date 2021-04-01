@@ -7,7 +7,7 @@ stateMachine:
     States:
       PublishEvents:
         Type: Task
-        Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-sns-publish-${self:provider.stage}"
+        Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-sns-publish-${self:provider.stage}:${self:custom.alias}"
         Next: EndChoice
       EndChoice:
         Type: Choice

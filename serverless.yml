@@ -3,9 +3,8 @@ service: omni-eventing
 provider:
   name: aws
   runtime: python3.7
-  versionFunctions: false
-  stage: ${opt:stage, 'dev'}
-  alias: ${opt:alias, 'v1'}
+  versionFunctions: true
+  stage: ${opt:stage, 'dev'}  
   region: us-east-1
   timeout: 30
   memorySize: 256
@@ -25,6 +24,7 @@ provider:
 
 
 custom: 
+  alias: ${opt:alias, 'v1'}
   dev:
     account: "332281781429"
     region: "us-east-1"
@@ -57,7 +57,6 @@ plugins:
 package:
   individually: true
   exclude:
-  # - '**/*'
   - serverless.yaml
 
 functions:
@@ -65,14 +64,14 @@ functions:
   custom-authorizer: ${file(config/functions/custom-authorizer.yml):function}
   get-event-types: ${file(config/functions/get-event-types.yml):function}
   datapipeline-diff: ${file(config/functions/datapipeline-diff.yml):function}
-  create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
-  delete-subscription: ${file(config/functions/delete-subscription.yml):function}
-  sns-publish: ${file(config/functions/sns-publish.yml):function}
-  s3-event: ${file(config/functions/s3-event.yml):function}
+#   create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
+#   delete-subscription: ${file(config/functions/delete-subscription.yml):function}
+#   sns-publish: ${file(config/functions/sns-publish.yml):function}
+#   s3-event: ${file(config/functions/s3-event.yml):function}
 
-stepFunctions:
-  stateMachines:
-    sns-publish-state-machine: ${file(config/step-functions/sns-publish-state-machine.yml):stateMachine}
+# stepFunctions:
+#   stateMachines:
+#     sns-publish-state-machine: ${file(config/step-functions/sns-publish-state-machine.yml):stateMachine}
 
 resources:
   Resources:
