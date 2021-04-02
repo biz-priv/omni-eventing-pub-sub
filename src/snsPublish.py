@@ -79,6 +79,11 @@ def get_events_json_shipments(dataframe):
         logger.info("shipment-info")
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
         raw_data['bill_to_nbr'] = raw_data['bill_to_nbr'].str.strip()
+        raw_data = raw_data.rename({'current_status': 'order_status'}, axis=1)
+        order_status_list = raw_data.order_status.unique()
+        order_status_list = tuple([i.strip() for i in order_status_list])
+        order_status_x12_ref_df = get_x12_codes(order_status_list)
+        raw_data = merge_rawdata_with_x12codes(raw_data, order_status_x12_ref_df)
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
         old_file_nbrs = list(old_data.file_nbr.unique())
         changed_data = raw_data.loc[raw_data['record_type'] == 'NEW']
@@ -162,6 +167,10 @@ def get_events_json_milestones(dataframe):
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
         indexNames = raw_data[ raw_data['source_system'] == 'EE' ].index
         raw_data.drop(indexNames , inplace=True)
+        order_status_list = raw_data.order_status.unique()
+        order_status_list = tuple([i.strip() for i in order_status_list])
+        order_status_x12_ref_df = get_x12_codes(order_status_list)
+        raw_data = merge_rawdata_with_x12codes(raw_data, order_status_x12_ref_df)
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
         old_file_nbrs = list(old_data.file_nbr.unique())
         changed_data = raw_data.loc[raw_data['record_type'] == 'NEW']
@@ -206,6 +215,32 @@ def get_s3_object(bucket, key):
         return dataframe
     except Exception as e:
         logging.exception("S3GetObjectError: {}".format(e))
+
+def merge_rawdata_with_x12codes(raw_data, order_status_x12_ref_df):
+    try:
+        raw_data_with_x12 = merge(raw_data, order_status_x12_ref_df, how='inner', left_on=['order_status'],
+                                right_on=['omni_cd'])
+        raw_data_with_x12 = raw_data_with_x12.drop(columns=['order_status', 'omni_cd'])
+        return raw_data_with_x12
+    except Exception as e:
+        logging.exception("RawDataX12CodesMergeError: {}".format(e))
+
+def get_x12_codes(order_status):
+    try:
+        con = psycopg2.connect(dbname=os.environ['DBNAME'],
+                            host=os.environ['HOST'],
+                            port=os.environ['PORT'], user=os.environ['USER'], password=os.environ['PASS'])
+        con.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = con.cursor()
+        cur.execute(f"select x12_cd, x12_event_desc, omni_cd from public.x12_cross_ref where omni_cd in {order_status}")
+        con.commit()
+        x = cur.fetchall()
+        x12_codes_df = DataFrame.from_records(x, columns=['x12_cd', 'x12_event_desc', 'omni_cd'])
+        cur.close()
+        con.close()
+        return x12_codes_df
+    except Exception as e:
+        logging.exception("GetX12CodesError: {}".format(e))
 def get_shared_secret(cust_id, event_type):
     try:
         cust_id = str(cust_id)
