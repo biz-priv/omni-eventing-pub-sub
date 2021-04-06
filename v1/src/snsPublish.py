@@ -285,9 +285,8 @@ def sns_publish(message, sns_event):
         elif message["SNS_FLAG"]=="FULL":
             topic_arn = full_topic_arn
         customer_id = str(message['customer_id'])
-        message = json.dumps(message)
         sns_client.publish(TopicArn=topic_arn,
-                           Message=message,
+                           Message=str(message),
                            MessageAttributes={
                             'customer_id': {
                                 'DataType': 'String',

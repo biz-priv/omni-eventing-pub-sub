@@ -5,7 +5,7 @@ function:
   description: get all events types API - ${self:provider.stage}
   events: 
     - http:  
-        path: /v1/events
+        path: /events
         method: GET
         integration: lambda
         private: true

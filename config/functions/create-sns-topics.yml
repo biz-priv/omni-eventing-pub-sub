@@ -5,7 +5,7 @@ function:
   description: create sns topics API - ${self:provider.stage}
   events: 
     - http:  
-        path: /v1/events
+        path: /events
         method: POST
         integration: lambda
         private: true

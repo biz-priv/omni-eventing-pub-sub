@@ -18,6 +18,6 @@ function:
         rules:
           - prefix: dev-diff-shipment-info/
           - suffix: .csv000
-        # existing: true
+  
   environment:
     SM_ARN: arn:aws:states:${self:custom.${self:provider.stage}.region}:${self:custom.${self:provider.stage}.account}:stateMachine:omni-eventing-sns-publish-state-machine-${self:provider.stage}

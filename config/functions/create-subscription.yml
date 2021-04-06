@@ -5,7 +5,7 @@ function:
   description: create subscription Webhook API - ${self:provider.stage}
   events: 
     - http:  
-        path: /v1/webhook
+        path: /webhook
         method: POST
         integration: lambda
         private: true
