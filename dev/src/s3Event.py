@@ -1,11 +1,9 @@
-import boto3
 import json
-import os
-client = boto3.client('stepfunctions')
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
-def handler(event, context):
-    response = client.start_execution(
-        stateMachineArn=os.environ["SM_ARN"],
-        input=json.dumps(event)
-    )
-    return json.dumps(response, default=str)
+def handler(event,context):
+    logger.info("Event: {}".format(json.dumps(event)))
+    success_message = {"message": "Successfully Executed"}
+    return success_message
