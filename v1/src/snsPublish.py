@@ -1,25 +1,23 @@
+import os
+import json
+import io
+import logging
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
 import hashlib
 import hmac
-import io
-import json
 import boto3
-import os
-import logging
+sns_client = boto3.client('sns')
 from pandas import read_csv, merge, DataFrame
 import psycopg2
-import logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-sns_client = boto3.client('sns')
 
 def handler(event, context):
-    logger.info(event)
     if('existing' not in event):
         try:
             bucket = event['Records'][0]['s3']['bucket']['name']
             key = event['Records'][0]['s3']['object']['key']
-        except Exception as e:
-            logging.exception("EventObjectNameFetchError: {}".format(e))
+        except Exception as bucket_error:
+            logging.exception("EventObjectNameFetchError: %s", json.dumps(bucket_error))
         end = '-diff.csv000'
         event_topic = ((key.split("/dev-"))[1].split(end)[0])
         dataframe = get_s3_object(bucket, key)
@@ -28,7 +26,7 @@ def handler(event, context):
             if ((diff_payload== None) and (full_payload==None)):
                 event['existing'] = 'true'
                 event['input'] = []
-                logger.info("No Valid Shipment Info")
+                LOGGER.info("No Valid Shipment Info")
                 return event
             sns_event = 'ShipmentUpdates'
         if('customer-invoices' in event_topic):
@@ -36,7 +34,7 @@ def handler(event, context):
             if ((diff_payload== None) and (full_payload==None)):
                 event['existing'] = 'true'
                 event['input'] = []
-                logger.info("No Valid Customer Invoices Info")
+                LOGGER.info("No Valid Customer Invoices Info")
                 return event
             sns_event = 'CustomerInvoices'
         elif('shipment-milestone' in event_topic):
@@ -44,7 +42,7 @@ def handler(event, context):
             if ((diff_payload== None) and (full_payload==None)):
                 event['existing'] = 'true'
                 event['input'] = []
-                logger.info("No Valid Shipment Milestone Info")
+                LOGGER.info("No Valid Shipment Milestone Info")
                 return event
             sns_event = 'Milestone'
         diff_list = include_shared_secret(diff_payload, 'change', sns_event)
@@ -71,12 +69,10 @@ def handler(event, context):
             event['end'] = 'false'
     event['existing'] = 'true'
     event['input'] = [d for d in merged_list if 'published' not in d]
-
     return event
 
 def get_events_json_shipments(dataframe):
     try:
-        logger.info("shipment-info")
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
         raw_data['bill_to_nbr'] = raw_data['bill_to_nbr'].str.strip()
         raw_data = raw_data.rename({'current_status': 'order_status'}, axis=1)
@@ -95,7 +91,7 @@ def get_events_json_shipments(dataframe):
         if (len(bill_to_numbers)==1):
             bill_to_numbers = '('+bill_to_numbers[0]+')'
         if (len(bill_to_numbers)==0):
-            logger.info("Returning No valid shipment information")
+            LOGGER.info("Returning No valid shipment information")
             return None, None
         old_data = old_data.set_index(['id'])
         changed_data = changed_data.set_index(['id'])
@@ -118,12 +114,11 @@ def get_events_json_shipments(dataframe):
         json_obj = json.loads(final_diff.apply(lambda x: [x.dropna()], axis=1).to_json())
         json_obj_full = json.loads(full_payload.to_json(orient='records'))
         return json_obj, json_obj_full
-    except Exception as e:
-        logging.exception("ShipmentInfoJSONError: {}".format(e))
+    except Exception as shipment_info_error:
+        logging.exception("ShipmentInfoJSONError: %s", json.dumps(shipment_info_error))
 
 def get_events_json_invoices(dataframe):
     try:
-        logger.info("customer-invoices")
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
         raw_data['bill_to_nbr'] = raw_data['bill_to_nbr'].str.strip()
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
@@ -159,11 +154,11 @@ def get_events_json_invoices(dataframe):
         json_obj = json.loads(final_diff.apply(lambda x: [x.dropna()], axis=1).to_json())
         json_obj_full = json.loads(full_payload.to_json(orient='records'))
         return json_obj, json_obj_full
-    except Exception as e:
-        logging.exception("CustomerInvoicesJSONError: {}".format(e))
+    except Exception as customer_invoices_error:
+        logging.exception("CustomerInvoicesJSONError: %s", json.dumps(customer_invoices_error))
+
 def get_events_json_milestones(dataframe):
     try:
-        logger.info("shipment-milestones")
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
         indexNames = raw_data[ raw_data['source_system'] == 'EE' ].index
         raw_data.drop(indexNames , inplace=True)
@@ -205,16 +200,17 @@ def get_events_json_milestones(dataframe):
         json_obj = json.loads(final_diff.apply(lambda x: [x.dropna()], axis=1).to_json())
         json_obj_full = json.loads(full_payload.to_json(orient='records'))
         return json_obj, json_obj_full
-    except Exception as e:
-        logging.exception("ShipmentsMilestonesJSONError: {}".format(e))
+    except Exception as shipment_milestone_error:
+        logging.exception("ShipmentsMilestonesJSONError: %s", json.dumps(shipment_milestone_error))
+
 def get_s3_object(bucket, key):
     try:
         client = boto3.client('s3')
         response = client.get_object(Bucket=bucket, Key=key)
         dataframe = read_csv(io.BytesIO(response['Body'].read()), dtype=str)
         return dataframe
-    except Exception as e:
-        logging.exception("S3GetObjectError: {}".format(e))
+    except Exception as object_error:
+        logging.exception("S3GetObjectError: %s", json.dumps(object_error))
 
 def merge_rawdata_with_x12codes(raw_data, order_status_x12_ref_df):
     try:
@@ -222,8 +218,8 @@ def merge_rawdata_with_x12codes(raw_data, order_status_x12_ref_df):
                                 right_on=['omni_cd'])
         raw_data_with_x12 = raw_data_with_x12.drop(columns=['order_status', 'omni_cd'])
         return raw_data_with_x12
-    except Exception as e:
-        logging.exception("RawDataX12CodesMergeError: {}".format(e))
+    except Exception as merge_error:
+        logging.exception("RawDataX12CodesMergeError: %s", json.dumps(merge_error))
 
 def get_x12_codes(order_status):
     try:
@@ -239,8 +235,9 @@ def get_x12_codes(order_status):
         cur.close()
         con.close()
         return x12_codes_df
-    except Exception as e:
-        logging.exception("GetX12CodesError: {}".format(e))
+    except Exception as codes_error:
+        logging.exception("GetX12CodesError:  %s", json.dumps(codes_error))
+
 def get_shared_secret(cust_id, event_type):
     try:
         cust_id = str(cust_id)
@@ -251,8 +248,9 @@ def get_shared_secret(cust_id, event_type):
             return response['Item']['Shared_Secret']['S']
         else:
             return None
-    except Exception as e:
-        logging.exception("DynamoDBCQueryExecutionError: {}".format(e))
+    except Exception as dynamo_error:
+        logging.exception("DynamoDBCQueryExecutionError: %s", json.dumps(dynamo_error))
+
 def get_cust_id(bill_to_numbers):
     con = psycopg2.connect(dbname=os.environ['DBNAME'],
                            host=os.environ['HOST'],
@@ -274,8 +272,8 @@ def get_topic_arn(event_type):
         change_topic_arn = response['Item']['Event_Payload_Topic_Arn']['S']
         full_topic_arn = response['Item']['Full_Payload_Topic_Arn']['S']
         return change_topic_arn, full_topic_arn
-    except Exception as e:
-        logging.exception("PublishARNFetchError: {}".format(e))
+    except Exception as fetch_error:
+        logging.exception("PublishARNFetchError: %s", json.dumps(fetch_error))
 
 def sns_publish(message, event_type):
     try:
@@ -294,9 +292,8 @@ def sns_publish(message, event_type):
                                 'DataType': 'String',
                                 'StringValue': customer_id
                             }})
-    except Exception as e:
-        logging.exception("SNSPublishError: {}".format(e))
-
+    except Exception as publish_error:
+        logging.exception("SNSPublishError: %s", json.dumps(publish_error))
 
 def include_shared_secret(payload, payload_type, event_type):
     json_list = []
@@ -314,9 +311,10 @@ def include_shared_secret(payload, payload_type, event_type):
                 record['Signature'] = hmac.new(shared_secret, json_body, hashlib.sha256).hexdigest()
                 json_list.append(record)
         return json_list
-    except Exception as e:
-        logging.exception("PublishMessageError: {}".format(e))
+    except Exception as publish_error:
+        logging.exception("PublishMessageError: %s", json.dumps(publish_error))
         raise SharedSecretFetchError
+
 def merge_rawdata_with_customer_id(raw_data, cust_id_df):
     try:
         raw_data_with_cid = merge(raw_data, cust_id_df, how='inner', left_on=['bill_to_nbr', 'source_system'],
@@ -326,7 +324,8 @@ def merge_rawdata_with_customer_id(raw_data, cust_id_df):
         raw_data_with_cid = raw_data_with_cid.set_index(['id'])
         raw_data_with_cid = raw_data_with_cid.sort_index()
         return raw_data_with_cid
-    except Exception as e:
-        logging.exception("RawDataCustomerIDMergeError: {}".format(e))
+    except Exception as merge_error:
+        logging.exception("RawDataCustomerIDMergeError: %s", json.dumps(merge_error))
+
 class SharedSecretFetchError(Exception):
     pass

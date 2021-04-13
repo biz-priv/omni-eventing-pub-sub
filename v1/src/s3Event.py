@@ -1,7 +1,7 @@
-import boto3
-import json
 import os
+import json
 client = boto3.client('stepfunctions')
+import boto3
 
 def handler(event, context):
     response = client.start_execution(

@@ -1,17 +1,17 @@
 import os
 import json
 import logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
 import botocore.session
 session = botocore.session.get_session()
 
 PolicyId="bizCloud|a1b2"
-InternalErrorMessage="Internal Error."
+INTERNAL_ERROR_MESSAGE="Internal Error."
 
 def generate_policy(principal_id, effect, customer_id = None, message = None):
     try:
-        logger.info("Inserting "+effect+" policy on API Gateway")
+        LOGGER.info("Inserting "+effect+" policy on API Gateway")
         policy = {}
         policy["principalId"] = principal_id
         policy_document = {
@@ -31,19 +31,19 @@ def generate_policy(principal_id, effect, customer_id = None, message = None):
         else:
             if customer_id:
                 policy["context"] = {"customerId": customer_id}
-        logger.info("Policy: {}".format(json.dumps(policy)))
+        LOGGER.info("Policy: %s", json.dumps(policy))
         return policy
-    except Exception as e:
-        logging.exception("GeneratePolicyError: {}".format(e))
-        raise GeneratePolicyError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
+    except Exception as policy_error:
+        logging.exception("GeneratePolicyError: %s", json.dumps(policy_error))
+        raise GeneratePolicyError(json.dumps({"httpStatus": 501, "message": INTERNAL_ERROR_MESSAGE})) from policy_error
 
 def handler(event, context):
     try:        
-        logger.info("Event: {}".format(json.dumps(event)))
+        LOGGER.info("Event is: %s", json.dumps(event))
         api_key = event['headers']['x-api-key']
-    except Exception as e:
-        logging.exception("ApiKeyError: {}".format(e))
-        raise ApiKeyError(json.dumps({"httpStatus": 400, "message": "API Key not passed."}))
+    except Exception as key_error:
+        logging.exception("ApiKeyError: %s", json.dumps(key_error))
+        raise ApiKeyError(json.dumps({"httpStatus": 400, "message": "API Key not passed."})) from key_error
 
     response = dynamo_query(os.environ["TOKEN_VALIDATION_TABLE"], os.environ["TOKEN_VALIDATION_TABLE_INDEX"], 
             'ApiKey = :apikey', {":apikey": {"S": api_key}})
@@ -69,9 +69,9 @@ def validate_dynamo_query_response(response, event, customer_id=None, message=No
             return response['Items'][0]['CustomerID']['S']
         else:
             return generate_policy(PolicyId, 'Allow', event["methodArn"], customer_id)
-    except Exception as e:
-        logging.exception("CustomerIdNotFound: {}".format(e))
-        raise CustomerIdNotFound(json.dumps({"httpStatus": 400, "message": "Customer Id not found."}))
+    except Exception as id_error:
+        logging.exception("CustomerIdNotFound: %s", json.dumps(id_error))
+        raise CustomerIdNotFound(json.dumps({"httpStatus": 400, "message": "Customer Id not found."})) from id_error
 
 def dynamo_query(table_name, index_name, expression, attributes):
     try:
@@ -82,18 +82,21 @@ def dynamo_query(table_name, index_name, expression, attributes):
             KeyConditionExpression=expression,
             ExpressionAttributeValues=attributes
         )
-        logger.info("Dynamo query response: {}".format(json.dumps(response)))
         return response
-    except Exception as e:
-        logging.exception("DynamoQueryError: {}".format(e))
-        raise DynamoQueryError(json.dumps({"httpStatus": 501, "message": InternalErrorMessage}))
+    except Exception as dynamo_error:
+        logging.exception("DynamoQueryError: %s", json.dumps(dynamo_error))
+        raise DynamoQueryError(json.dumps({"httpStatus": 501, "message": INTERNAL_ERROR_MESSAGE})) from dynamo_error
 
-def get_response(status, msg):
-    return {"status": status, "message": msg}
+class ApiKeyError(Exception):
+    pass
+class HandlerError(Exception):
+    pass
+class CustomerIdNotFound(Exception):
+    pass
+class GeneratePolicyError(Exception):
+    pass
+class InputError(Exception):
+    pass
+class DynamoQueryError(Exception):
+    pass
 
-class ApiKeyError(Exception): pass
-class HandlerError(Exception): pass
-class CustomerIdNotFound(Exception): pass
-class GeneratePolicyError(Exception): pass
-class InputError(Exception): pass
-class DynamoQueryError(Exception): pass
