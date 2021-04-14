@@ -38,7 +38,7 @@ pipeline {
                     sh '''
                     eval $(pylint --rcfile=pylint.cfg $(find . -type f -name "*.py") --output-format=parseable -r y > pylint.log)
                     cat pylint.log
-                    pylint-fail-under --fail_under 9.0 omni-eventing-pub-sub --rcfile=omni-eventing-pub-sub/pylint.cfg --output-format=parseable -r y
+                    pylint-fail-under --fail_under 9.0 --rcfile=pylint.cfg --output-format=parseable -r y
                     '''
                 }
             }
