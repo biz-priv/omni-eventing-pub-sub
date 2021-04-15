@@ -3,13 +3,13 @@ import json
 import logging
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
+import boto3
+client = boto3.client('dynamodb')
+sns_client = boto3.client('sns')
 import jsonschema
 from jsonschema import validate
 import pydash
 import validators
-import boto3
-client = boto3.client('dynamodb')
-sns_client = boto3.client('sns')
 
 INTERNAL_ERROR_MESSAGE = "Internal Error."
 
