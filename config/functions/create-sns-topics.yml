@@ -1,6 +1,6 @@
 ---
 function:
-  handler: ${self:custom.alias}/src/createSnsTopics.handler
+  handler: ${self:custom.alias}/src/create_sns_topics.handler
   name: ${self:service}-create-sns-topics-${self:provider.stage}
   description: create sns topics API - ${self:provider.stage}
   events: 
@@ -37,7 +37,7 @@ function:
     exclude:
     - '**/*'
     include:
-    - ${self:custom.alias}/src/createSnsTopics.py
+    - ${self:custom.alias}/src/create_sns_topics.py
   environment: 
     EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}
     REGION: ${self:provider.region}

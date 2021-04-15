@@ -36,8 +36,9 @@ pipeline {
             steps{
                 script {
                     sh '''
-                    eval $(pylint --rcfile=pylint.cfg $(find . -type f -name "*.py") --output-format=parseable -r y > pylint.log)
+                    eval $(pylint --version --rcfile=pylint.cfg $(find . -type f -name "*.py") --output-format=parseable -r y > pylint.log)
                     cat pylint.log
+                    pylint-ignore --rcfile=pylint.cfg pandas,numpy,psycopg2,node_modules,numpy-1.20.1.dist-info,pytz,six-1.15.0.dist-info,six.py,numpy.libs,dateutil,pydash,python_dateutil-2.8.1.dist-info
                     pylint-fail-under --fail_under 9.0 --rcfile=pylint.cfg --output-format=parseable -r y
                     '''
                 }

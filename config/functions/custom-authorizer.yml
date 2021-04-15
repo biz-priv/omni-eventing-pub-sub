@@ -1,13 +1,13 @@
 ---
 function:
-  handler: ${self:custom.alias}/src/customAuthorizer.handler
+  handler: ${self:custom.alias}/src/custom_authorizer.handler
   name: ${self:service}-custom-authorizer-${self:provider.stage}
   description: custom authorizer - ${self:provider.stage}
   package:
     exclude:
     - '**/*'
     include:
-    - ${self:custom.alias}/src/customAuthorizer.py
+    - ${self:custom.alias}/src/custom_authorizer.py
   environment:
     TOKEN_VALIDATION_TABLE: ${ssm:/omni-dw/${self:provider.stage}/tokenValidator/table}
     TOKEN_VALIDATION_TABLE_INDEX: ${ssm:/omni-dw/${self:provider.stage}/tokenValidator/apiKey/index}
