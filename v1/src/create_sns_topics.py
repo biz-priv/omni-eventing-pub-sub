@@ -10,7 +10,7 @@ client = boto3.client('dynamodb')
 sns_client = boto3.client('sns')
 
 def handler(event, context):
-    LOGGER.info("Event: %s", json.dumps(event))
+    LOGGER.info("Event is : %s", json.dumps(event))
 
     validate_input(event['body'])
     event_type = event['body']['EventType']
