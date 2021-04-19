@@ -3,8 +3,8 @@ service: omni-eventing
 provider:
   name: aws
   runtime: python3.7
-  versionFunctions: false
-  stage: ${opt:stage, 'dev'}
+  versionFunctions: true
+  stage: ${opt:stage, 'dev'}  
   region: us-east-1
   timeout: 30
   memorySize: 256
@@ -24,6 +24,7 @@ provider:
 
 
 custom: 
+  alias: ${opt:alias, 'v1'}
   dev:
     account: "332281781429"
     region: "us-east-1"
@@ -52,10 +53,11 @@ plugins:
   - serverless-plugin-multiple-responses
   - serverless-step-functions
   - serverless-pseudo-parameters
+  - serverless-aws-alias
+  - serverless-plugin-existing-s3
 package:
   individually: true
   exclude:
-  # - '**/*'
   - serverless.yaml
 
 functions:
