@@ -91,10 +91,10 @@ def update_customer_preference(customer_data,customer_id,response):
                 'S': customer_id
                 },
                 'Endpoint' :{
-                 'S': customer_data['Endpoint']   
+                 'S': customer_data['Endpoint']
                 },
                 'Shared_Secret' :{
-                 'S': customer_data['SharedSecret']   
+                 'S': customer_data['SharedSecret']
                 },
                 'Subscription_arn': {
                 'S': response['SubscriptionArn']

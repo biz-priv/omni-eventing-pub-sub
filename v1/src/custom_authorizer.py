@@ -52,14 +52,14 @@ def handler(event, context):
 
     if "POST/webhook" in event["methodArn"]:
         return generate_policy("postPolicyId123", 'Allow', customer_id)
-    elif "DELETE/webhook" in event["methodArn"]:
+    if "DELETE/webhook" in event["methodArn"]:
         return generate_policy("deletePolicyId456", 'Allow',  customer_id)
     if "GET/events" in event["methodArn"]:
         return generate_policy(POLICY_ID, 'Allow',  customer_id)
     if customer_id != "admin" and "POST/events" in event["methodArn"]:
         return generate_policy(POLICY_ID, 'Deny', customer_id, message = "API can only be accessed by admins. Contact support and request admin credentials.")
-    else:
-        return generate_policy(POLICY_ID, 'Allow', customer_id)
+    # elif:
+    return generate_policy(POLICY_ID, 'Allow', customer_id)
 
 def validate_dynamo_query_response(response, event, customer_id=None, message=None):
     try:
@@ -67,8 +67,8 @@ def validate_dynamo_query_response(response, event, customer_id=None, message=No
             return generate_policy(None, 'Deny', event["methodArn"], None, message)
         if not customer_id:
             return response['Items'][0]['CustomerID']['S']
-        else:
-            return generate_policy(POLICY_ID, 'Allow', event["methodArn"], customer_id)
+        # else:
+        return generate_policy(POLICY_ID, 'Allow', event["methodArn"], customer_id)
     except Exception as id_error:
         logging.exception("CustomerIdNotFound: %s", json.dumps(id_error))
         raise CustomerIdNotFound(json.dumps({"httpStatus": 400, "message": "Customer Id not found."})) from id_error
