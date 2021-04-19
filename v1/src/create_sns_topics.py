@@ -49,10 +49,10 @@ def insert_eventing_topics(event_type,topics_arns):
                 'S': event_type+"_change"
                 },
                 'Full_Payload_Topic_Arn' :{
-                 'S': topics_arns[0]   
+                 'S': topics_arns[0]
                 },
                 'Full_Payload_Topic_Name' :{
-                 'S': event_type+"_fullPayload"   
+                 'S': event_type+"_fullPayload"
                 }
             }
         )
@@ -63,7 +63,7 @@ def insert_eventing_topics(event_type,topics_arns):
 def dynamo_get(event_type):
     try:
         response = client.get_item(TableName=os.environ['EVENTING_TOPICS_TABLE'],
-                                Key={'Event_Type':{'S':event_type}})                                                    
+                                Key={'Event_Type':{'S':event_type}})
         return response
     except Exception as get_error:
         logging.exception("DynamoGetError: %s", json.dumps(get_error))
@@ -72,7 +72,7 @@ def dynamo_get(event_type):
 def validate_input(event):
     schema = {
     "type" : "object",
-    "required": ["EventType"],  
+    "required": ["EventType"],
     "properties" : {"EventType" : {"type" : "string"}}}
     try:
         validate(instance=event,schema=schema)
@@ -80,7 +80,7 @@ def validate_input(event):
         raise ValidationError(json.dumps({"httpStatus": 400, "message":validation_error.message})) from validation_error
 
 class InputError(Exception):
-    pass    
+    pass
 class DynamoGetError(Exception):
     pass
 class TopicCreationError(Exception):

@@ -1,13 +1,13 @@
 import os
 import json
 import logging
-import pydash
 import validators
 import jsonschema
-from jsonschema import validate
 import boto3
 client = boto3.client('dynamodb')
 sns_client = boto3.client('sns')
+import pydash
+from jsonschema import validate
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
 
