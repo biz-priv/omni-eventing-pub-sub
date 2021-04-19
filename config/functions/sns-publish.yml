@@ -1,5 +1,5 @@
 function:
-  handler: ${self:custom.alias}/src/snsPublish.handler
+  handler: ${self:custom.alias}/src/sns_publish.handler
   name: ${self:service}-sns-publish-${self:provider.stage}
   description: omni eventing publish sns events from s3 - ${self:provider.stage}
   memorySize: 2048
@@ -7,18 +7,18 @@ function:
   package:
     include:
     - psycopg2/**
-    - ${self:custom.alias}/src/snsPublish.py
+    - ${self:custom.alias}/src/sns_publish.py
     - pandas/**
     - numpy/**
     - pytz/**
     exclude:
     - config/**
-    - ${self:custom.alias}/src/createSnsTopic.py
-    - ${self:custom.alias}/src/createSubscription.py
-    - ${self:custom.alias}/src/datapipelineDiff.py
-    - ${self:custom.alias}/src/deleteSubscription.py
-    - ${self:custom.alias}/src/getEventTypes.py
-    - ${self:custom.alias}/src/s3Event.py
+    - ${self:custom.alias}/src/create_sns_topic.py
+    - ${self:custom.alias}/src/create_subscription.py
+    - ${self:custom.alias}/src/datapipeline_diff.py
+    - ${self:custom.alias}/src/delete_subscription.py
+    - ${self:custom.alias}/src/get_event_types.py
+    - ${self:custom.alias}/src/s3_event.py
 
   environment:
     BUCKET: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}
