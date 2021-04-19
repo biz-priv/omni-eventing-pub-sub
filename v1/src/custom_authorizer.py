@@ -58,7 +58,6 @@ def handler(event, context):
         return generate_policy(POLICY_ID, 'Allow',  customer_id)
     if customer_id != "admin" and "POST/events" in event["methodArn"]:
         return generate_policy(POLICY_ID, 'Deny', customer_id, message = "API can only be accessed by admins. Contact support and request admin credentials.")
-    # elif:
     return generate_policy(POLICY_ID, 'Allow', customer_id)
 
 def validate_dynamo_query_response(response, event, customer_id=None, message=None):
@@ -67,7 +66,6 @@ def validate_dynamo_query_response(response, event, customer_id=None, message=No
             return generate_policy(None, 'Deny', event["methodArn"], None, message)
         if not customer_id:
             return response['Items'][0]['CustomerID']['S']
-        # else:
         return generate_policy(POLICY_ID, 'Allow', event["methodArn"], customer_id)
     except Exception as id_error:
         logging.exception("CustomerIdNotFound: %s", json.dumps(id_error))
