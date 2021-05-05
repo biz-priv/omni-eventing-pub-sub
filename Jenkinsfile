@@ -46,6 +46,7 @@ pipeline {
         stage('Code Deploy'){
             when {
                 anyOf {
+                    branch 'master';
                     branch 'sit';
                     branch 'develop';
                     branch 'feature/*';
