@@ -71,8 +71,8 @@ def validate_input(payload):
         validate(instance=payload,schema=schema)
     except jsonschema.exceptions.ValidationError as val_error:
         raise InputError(json.dumps({"httpStatus": 400, "message" : val_error.message})) from val_error
-    # if not validators.url(payload['Endpoint']) or not pydash.strings.starts_with(payload['Endpoint'],"https"):
-    #     raise InputError(json.dumps({"httpStatus": 400, "message" : "Only Valid HTTPS endpoints are accepted"}))
+    if not validators.url(payload['Endpoint']) or not pydash.strings.starts_with(payload['Endpoint'],"https"):
+        raise InputError(json.dumps({"httpStatus": 400, "message" : "Only Valid HTTPS endpoints are accepted"}))
 
 class ValidationError(Exception):
     pass
