@@ -9,16 +9,16 @@ def handler(event, context):
     try:
         response = s3_client.get_object(Bucket=os.environ['BUCKET'],Key=os.environ['KEY'])
     except Exception as get_error:
-        logging.exception("GetObjectError: %s", json.dumps(get_error))
+        logging.exception("GetObjectError : %s", json.dumps(get_error))
 
     try:
         obj = response['Body'].read()
         obj = (obj.decode('utf-8'))
     except Exception as read_error:
-        logging.exception("DiffSQLScriptReadError: %s", json.dumps(read_error))
+        logging.exception("DiffSQLScriptReadError : %s", json.dumps(read_error))
 
     try:
         response=client.execute_statement(Database=os.environ['DBNAME'], DbUser=os.environ['USER'], Sql=obj, ClusterIdentifier=os.environ['CLUSTERID'])
         return response
     except Exception as diff_error:
-        logging.exception("DiffQueryExecutionError: %s", json.dumps(diff_error))
+        logging.exception("DiffQueryExecutionError : %s", json.dumps(diff_error))

@@ -39,7 +39,7 @@ def generate_policy(principal_id, effect, customer_id = None, message = None):
 
 def handler(event, context):
     try:
-        LOGGER.info("Event is: %s", json.dumps(event))
+        LOGGER.info("Event is = %s", json.dumps(event))
         api_key = event['headers']['x-api-key']
     except Exception as key_error:
         logging.exception("ApiKeyError: %s", json.dumps(key_error))
@@ -49,24 +49,26 @@ def handler(event, context):
             'ApiKey = :apikey', {":apikey": {"S": api_key}})
 
     customer_id = validate_dynamo_query_response(response, event, None, "Customer Id not found.")
+    if type(customer_id) != str:
+        return customer_id
 
     if "POST/webhook" in event["methodArn"]:
-        return generate_policy("postPolicyId123", 'Allow', customer_id)
+        return generate_policy("postPolicyId123", 'Allow', customer_id, None)
     if "DELETE/webhook" in event["methodArn"]:
-        return generate_policy("deletePolicyId456", 'Allow',  customer_id)
+        return generate_policy("deletePolicyId456", 'Allow',  customer_id, None)
     if "GET/events" in event["methodArn"]:
-        return generate_policy(POLICY_ID, 'Allow',  customer_id)
+        return generate_policy(POLICY_ID, 'Allow',  customer_id, None)
     if customer_id != "admin" and "POST/events" in event["methodArn"]:
         return generate_policy(POLICY_ID, 'Deny', customer_id, message = "API can only be accessed by admins. Contact support and request admin credentials.")
-    return generate_policy(POLICY_ID, 'Allow', customer_id)
+    return generate_policy(POLICY_ID, 'Allow', customer_id, None)
 
 def validate_dynamo_query_response(response, event, customer_id=None, message=None):
     try:
         if not response or "Items" not in response or len(response['Items']) == 0:
-            return generate_policy(None, 'Deny', event["methodArn"], None, message)
+            return generate_policy(None, 'Deny', None, "Customer ID not found.")
         if not customer_id:
             return response['Items'][0]['CustomerID']['S']
-        return generate_policy(POLICY_ID, 'Allow', event["methodArn"], customer_id)
+        return generate_policy(POLICY_ID, 'Allow', customer_id)
     except Exception as id_error:
         logging.exception("CustomerIdNotFound: %s", json.dumps(id_error))
         raise CustomerIdNotFound(json.dumps({"httpStatus": 400, "message": "Customer Id not found."})) from id_error
@@ -80,6 +82,7 @@ def dynamo_query(table_name, index_name, expression, attributes):
             KeyConditionExpression=expression,
             ExpressionAttributeValues=attributes
         )
+        LOGGER.info("Dynamo query Response %s", response)
         return response
     except Exception as dynamo_error:
         logging.exception("DynamoQueryError: %s", json.dumps(dynamo_error))
