@@ -12,7 +12,7 @@ LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
 
 def handler(event, context):
-    LOGGER.info("Event is : %s", json.dumps(event))
+    LOGGER.info("Event %s", json.dumps(event))
     customer_id = event['enhancedAuthContext']['customerId']
     validate_input(event['body'])
 

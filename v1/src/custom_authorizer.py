@@ -39,7 +39,7 @@ def generate_policy(principal_id, effect, customer_id = None, message = None):
 
 def handler(event, context):
     try:
-        LOGGER.info("Event is = %s", json.dumps(event))
+        LOGGER.info("Event %s", json.dumps(event))
         api_key = event['headers']['x-api-key']
     except Exception as key_error:
         logging.exception("ApiKeyError: %s", json.dumps(key_error))
