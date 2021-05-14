@@ -1,0 +1,18 @@
+function:
+  name: ${self:service}-diff-pipeline-shipment${self:service}
+  handler: ${self:custom.alias}/src/datapipeline_shipment_diff.handler
+  events:
+    - sns: 
+        arn: ${ssm:/omni/${self:provider.stage}/eventing/sns/diff-data-pipeline/shipment/arn}
+  package:
+    exclude:
+    - '**/*'
+    include:
+    - ${self:custom.alias}/src/datapipeline_shipment_diff.py
+
+  environment:
+    DBNAME: ${ssm:/omni-dw/${self:provider.stage}/db/name}
+    USER: ${ssm:/omni-dw/${self:provider.stage}/db/user~true}
+    CLUSTERID: ${ssm:/omni-dw/${self:provider.stage}/cluster/identifier}
+    BUCKET: ${ssm:/omni-dw/${self:provider.stage}/s3/datapipeline/bucket}
+    KEY: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing-diff/key}

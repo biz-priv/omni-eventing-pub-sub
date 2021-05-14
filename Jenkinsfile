@@ -47,8 +47,8 @@ pipeline {
             when {
                 anyOf {
                     branch 'master';
-                    branch 'sit';
                     branch 'develop';
+                    branch 'devint';
                     branch 'feature/*';
                     branch 'bugfix/*';
                 }
