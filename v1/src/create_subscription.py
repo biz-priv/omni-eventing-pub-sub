@@ -14,7 +14,7 @@ import validators
 INTERNAL_ERROR_MESSAGE = "Internal Error."
 
 def handler(event, context):
-    LOGGER.info("Event is: %s", json.dumps(event))
+    LOGGER.info("Event %s", json.dumps(event))
     customer_id = event['enhancedAuthContext']['customerId']
     validate_input(event['body'])
 
@@ -33,7 +33,7 @@ def handler(event, context):
                                     ExpressionAttributeValues={':Event_Type': {'S': event_type}},
                                     ProjectionExpression='Event_Payload_Topic_Arn,Full_Payload_Topic_Arn')
     except Exception as events_error:
-        logging.exception("EventingTopicsError: %s", json.dumps(events_error))
+        logging.exception("EventingTopicsError: %s", events_error)
         raise EventingTopicsError(json.dumps({"httpStatus": 501, "message": INTERNAL_ERROR_MESSAGE})) from events_error
 
     if len(events_response["Items"]) == 0:
@@ -47,7 +47,7 @@ def handler(event, context):
             arn = events_response['Items'][0]['Event_Payload_Topic_Arn']['S']
             response = subscribe_to_topic(arn,endpoint,customer_id)
     except Exception as create_error:
-        logging.exception("CreateSubScriptionError: %s", json.dumps(create_error))
+        logging.exception("CreateSubScriptionError: %s", create_error)
         raise CreateSubScriptionError(json.dumps({"httpStatus": 501, "message": INTERNAL_ERROR_MESSAGE})) from create_error
 
     update_customer_preference(customer_payload,customer_id,response)
@@ -61,7 +61,7 @@ def subscribe_to_topic(topic_arn,endpoint,customer_id):
                                         ReturnSubscriptionArn=True)
         return response
     except Exception as subscribe_error:
-        logging.exception("SubscribeToTopicError:  %s", json.dumps(subscribe_error))
+        logging.exception("SubscribeToTopicError:  %s", subscribe_error)
         raise SubscribeToTopicError(json.dumps({"httpStatus": 501, "message": INTERNAL_ERROR_MESSAGE})) from subscribe_error
 
 def dynamo_get(customer_id, event_type):
@@ -73,7 +73,7 @@ def dynamo_get(customer_id, event_type):
                                                 ":Event_Type": {"S":event_type}})
         return response
     except Exception as get_error:
-        logging.exception("DynamoGetError:  %s", json.dumps(get_error))
+        logging.exception("DynamoGetError:  %s", get_error)
         raise DynamoGetError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"})) from get_error
 
 def update_customer_preference(customer_data,customer_id,response):
@@ -102,7 +102,7 @@ def update_customer_preference(customer_data,customer_id,response):
             }
         )
     except Exception as update_error:
-        logging.exception("UpdateCustomerPreferenceTableError: %s", json.dumps(update_error))
+        logging.exception("UpdateCustomerPreferenceTableError: %s", update_error)
         raise UpdateCustomerPreferenceTableError(json.dumps({"httpStatus": 400, "message": update_error})) from update_error
 
 def validate_input(payload):
