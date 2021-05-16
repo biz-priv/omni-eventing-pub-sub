@@ -18,6 +18,7 @@ def handler(event, context):
         logging.exception("DiffSQLScriptReadError: %s", json.dumps(read_error))
 
     try:
-        client.execute_statement(Database=os.environ['DBNAME'], DbUser=os.environ['USER'], Sql=obj, ClusterIdentifier=os.environ['CLUSTERID'])
+        response=client.execute_statement(Database=os.environ['DBNAME'], DbUser=os.environ['USER'], Sql=obj, ClusterIdentifier=os.environ['CLUSTERID'])
+        return response
     except Exception as diff_error:
         logging.exception("DiffQueryExecutionError: %s", json.dumps(diff_error))
