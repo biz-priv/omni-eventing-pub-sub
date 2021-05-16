@@ -14,15 +14,15 @@ pipeline {
                     if ("${GIT_BRANCH}".startsWith("PR-")){
                         if("${CHANGE_TARGET}".contains("develop")){
                             env.ENVIRONMENT=env.getProperty("environment_develop")
-                        } else if("${CHANGE_TARGET}".contains("sit")){
-                            env.ENVIRONMENT=env.getProperty("environment_sit")
+                        } else if("${CHANGE_TARGET}".contains("devint")){
+                            env.ENVIRONMENT=env.getProperty("environment_devint")
                         } else if("${CHANGE_TARGET}".contains("master")){
                             env.ENVIRONMENT=env.getProperty("environment_prod")
                         }
                     } else if ("${GIT_BRANCH}".contains("feature") || "${GIT_BRANCH}".contains("bugfix") || "${GIT_BRANCH}".contains("develop")){
                         env.ENVIRONMENT=env.getProperty("environment_develop")
-                    } else if("${GIT_BRANCH}".contains("sit")){
-                        env.ENVIRONMENT=env.getProperty("environment_sit")
+                    } else if("${GIT_BRANCH}".contains("devint")){
+                        env.ENVIRONMENT=env.getProperty("environment_devint")
                     } else if ("${GIT_BRANCH}".contains("master") || "${GIT_BRANCH}".contains("hotfix")) {
                         env.ENVIRONMENT=env.getProperty("environment_prod")
                     }
@@ -46,8 +46,9 @@ pipeline {
         stage('Code Deploy'){
             when {
                 anyOf {
-                    branch 'sit';
+                    branch 'master';
                     branch 'develop';
+                    branch 'devint';
                     branch 'feature/*';
                     branch 'bugfix/*';
                 }
