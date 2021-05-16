@@ -10,8 +10,7 @@ client = boto3.client('dynamodb')
 sns_client = boto3.client('sns')
 
 def handler(event, context):
-    LOGGER.info("Event is : %s", json.dumps(event))
-
+    LOGGER.info("Event %s", json.dumps(event))
     validate_input(event['body'])
     event_type = event['body']['EventType']
 
@@ -31,7 +30,7 @@ def create_topic(event_type):
         topics_arns = [full_response["TopicArn"], change_response["TopicArn"]]
         return topics_arns
     except Exception as create_error:
-        logging.exception("TopicCreationError: %s", json.dumps(create_error))
+        logging.exception("TopicCreationError: %s", create_error)
         raise TopicCreationError(json.dumps({"httpStatus": 400, "message": "Unable to create Event Type"})) from create_error
 
 def insert_eventing_topics(event_type,topics_arns):
@@ -66,7 +65,7 @@ def dynamo_get(event_type):
                                 Key={'Event_Type':{'S':event_type}})
         return response
     except Exception as get_error:
-        logging.exception("DynamoGetError: %s", json.dumps(get_error))
+        logging.exception("DynamoGetError: %s", get_error)
         raise DynamoGetError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing Event Types"})) from get_error
 
 def validate_input(event):

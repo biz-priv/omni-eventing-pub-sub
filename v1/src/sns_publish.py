@@ -12,7 +12,7 @@ from pandas import read_csv, merge, DataFrame
 import psycopg2
 
 def handler(event, context):
-    LOGGER.info(event)
+    LOGGER.info("Event %s", json.dumps(event))
     if 'existing' not in event:
         try:
             bucket = event['Records'][0]['s3']['bucket']['name']
