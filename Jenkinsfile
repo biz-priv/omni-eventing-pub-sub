@@ -64,6 +64,7 @@ pipeline {
                     serverless --version
                     echo ${env.ALIAS_VERSION}
                     sls deploy -s ${env.ENVIRONMENT} --alias ${env.ALIAS_VERSION}
+                    sls s3deploy --stage ${env.ENVIRONMENT} --alias ${env.ALIAS_VERSION}
                     """
                 }
             }
