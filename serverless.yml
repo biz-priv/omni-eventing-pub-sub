@@ -37,9 +37,7 @@ custom:
       - create-subscription
       - custom-authorizer
       - get-event-types
-      - datapipeline-shipment-diff
-      - datapipeline-invoice-diff
-      - datapipeline-milestone-diff
+      - datapipeline-diff
       - create-sns-topics
       - delete-subscription
       - sns-publish
@@ -66,13 +64,11 @@ functions:
   create-subscription: ${file(config/functions/create-subscription.yml):function}
   custom-authorizer: ${file(config/functions/custom-authorizer.yml):function}
   get-event-types: ${file(config/functions/get-event-types.yml):function}
-  datapipeline-shipment-diff: ${file(config/functions/datapipeline-shipment-diff.yml):function}
+  datapipeline-diff: ${file(config/functions/datapipeline-diff.yml):function}
   create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
   delete-subscription: ${file(config/functions/delete-subscription.yml):function}
   sns-publish: ${file(config/functions/sns-publish.yml):function}
   s3-event: ${file(config/functions/s3-event.yml):function}
-  datapipeline-invoice-diff: ${file(config/functions/datapipeline-invoice-diff.yml):function}
-  datapipeline-milestone-diff: ${file(config/functions/datapipeline-milestone-diff.yml):function}
 
 stepFunctions:
   stateMachines:

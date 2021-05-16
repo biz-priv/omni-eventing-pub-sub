@@ -3,16 +3,16 @@ import json
 import logging
 import validators
 import jsonschema
-from jsonschema import validate
 import boto3
 client = boto3.client('dynamodb')
 sns_client = boto3.client('sns')
 import pydash
+from jsonschema import validate
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
 
 def handler(event, context):
-    LOGGER.info("Event %s", json.dumps(event))
+    LOGGER.info("Event is: %s", json.dumps(event))
     customer_id = event['enhancedAuthContext']['customerId']
     validate_input(event['body'])
 
@@ -24,7 +24,7 @@ def handler(event, context):
     try:
         sns_client.unsubscribe(SubscriptionArn=response['Items'][0]['Subscription_arn']['S'])
     except Exception as delete_sub_error:
-        logging.exception("DeleteSubScriptionError: %s", delete_sub_error)
+        logging.exception("DeleteSubScriptionError: %s", json.dumps(delete_sub_error))
         raise DeleteSubScriptionError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."})) from delete_sub_error
 
     try:
@@ -32,7 +32,7 @@ def handler(event, context):
         success_message = {"message": "Unsubscribed successfully."}
         return success_message
     except Exception as delete_error:
-        logging.exception("DeleteError: %s", delete_error)
+        logging.exception("DeleteError: %s", json.dumps(delete_error))
         raise DeleteError(json.dumps({"httpStatus": 400, "message": "Unable to delete subscription. Please contact admin for support."})) from delete_error
 
 def dynamo_get(customer_id, event_type):
@@ -45,7 +45,7 @@ def dynamo_get(customer_id, event_type):
                     ProjectionExpression='Subscription_arn')
         return response
     except Exception as get_error:
-        logging.exception("DynamoGetError: %s", get_error)
+        logging.exception("DynamoGetError: %s", json.dumps(get_error))
         raise DynamoGetError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"})) from get_error
 
 def dynamo_delete(customer_id, event_type):
@@ -55,7 +55,7 @@ def dynamo_delete(customer_id, event_type):
             Key={'Customer_Id': {'S': customer_id},
                 'Event_Type': {'S': event_type}})
     except Exception as delete_error:
-        logging.exception("DynamoDeleteError: %s", delete_error)
+        logging.exception("DynamoDeleteError: %s", json.dumps(delete_error))
         raise DynamoDeleteError(json.dumps({"httpStatus": 400, "message": "Unable to fetch existing subscription details"})) from delete_error
 
 def validate_input(payload):
