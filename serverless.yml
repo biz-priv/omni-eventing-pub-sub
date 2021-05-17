@@ -41,6 +41,8 @@ custom:
       - create-sns-topics
       - delete-subscription
       - sns-publish
+      - datapipeline-milestone-diff
+      - datapipeline-invoice-diff
     dependenciesPath: ./requirements.txt
   standardResponseHeaders:
     'Access-Control-Allow-Origin': "'*'"
@@ -64,7 +66,9 @@ functions:
   create-subscription: ${file(config/functions/create-subscription.yml):function}
   custom-authorizer: ${file(config/functions/custom-authorizer.yml):function}
   get-event-types: ${file(config/functions/get-event-types.yml):function}
-  datapipeline-diff: ${file(config/functions/datapipeline-diff.yml):function}
+  datapipeline-shipment-diff: ${file(config/functions/datapipeline-shipment-diff.yml):function}
+  datapipeline-milestone-diff: ${file(config/functions/datapipeline-milestone-diff.yml):function}
+  datapipeline-invoice-diff: ${file(config/functions/datapipeline-invoice-diff.yml):function}
   create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
   delete-subscription: ${file(config/functions/delete-subscription.yml):function}
   sns-publish: ${file(config/functions/sns-publish.yml):function}
@@ -84,7 +88,7 @@ resources:
           gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
         ResponseType: ACCESS_DENIED
         ResponseTemplates:
-          application/json: |
+          application/json:
             {
               "errorDescription":"$context.authorizer.message"
             }

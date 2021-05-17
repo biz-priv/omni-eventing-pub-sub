@@ -3,7 +3,7 @@ function:
   handler: ${self:custom.alias}/src/datapipeline_diff.handler
   events:
     - sns: 
-        arn: ${ssm:/omni/${self:provider.stage}/eventing/sns/diff-data-pipeline/arn}
+        arn: ${ssm:/omni/${self:provider.stage}/eventing/sns/diff-data-pipeline/shipment/arn}
   package:
     exclude:
     - '**/*'
