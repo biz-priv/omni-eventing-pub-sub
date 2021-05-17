@@ -22,7 +22,6 @@ provider:
     Version: "1.0"
     Environment: ${self:provider.stage}
 
-
 custom: 
   alias: ${opt:alias, 'v1'}
   dev:
