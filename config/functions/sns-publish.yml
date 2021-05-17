@@ -22,7 +22,6 @@ function:
 
   environment:
     BUCKET: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}
-    KEY: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/key}
     DBNAME: ${ssm:/omni-dw/${self:provider.stage}/db/name}
     USER: ${ssm:/omni-dw/${self:provider.stage}/db/user~true}
     HOST: ${ssm:/omni-dw/${self:provider.stage}/db/host~true}
