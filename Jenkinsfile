@@ -49,8 +49,8 @@ pipeline {
                     branch 'master';
                     branch 'develop';
                     branch 'devint';
-                    branch 'feature/*';
                     branch 'bugfix/*';
+                    branch 'feature/*'
                 }
                 expression {
                     return true;

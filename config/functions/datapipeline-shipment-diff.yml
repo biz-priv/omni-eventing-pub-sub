@@ -1,5 +1,5 @@
 function:
-  name: ${self:service}-diff-pipeline-shipment${self:service}
+  name: ${self:service}-diff-pipeline-shipment-${self:provider.stage}
   handler: ${self:custom.alias}/src/datapipeline_shipment_diff.handler
   events:
     - sns: 
