@@ -60,7 +60,7 @@ plugins:
 package:
   individually: true
   exclude:
-  - serverless.yaml
+  - serverless.yaml 
 
 functions:
   create-subscription: ${file(config/functions/create-subscription.yml):function}
