@@ -10,12 +10,13 @@ function:
     include:
     - ${self:custom.alias}/src/s3_event.py
   events:
-    - existingS3:
-        bucket: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}
-        events: 
-          - s3:ObjectCreated:*
-        rules:
-          - prefix: ${self:provider.stage}-eventing-diff/
-          - suffix: .csv000
+    - s3:
+      bucket: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}
+      events: 
+        - s3:ObjectCreated:*
+      rules:
+        - prefix: ${self:provider.stage}-eventing-diff/
+        - suffix: .csv000
+      existing: true
   environment:
     SM_ARN: arn:aws:states:${self:custom.${self:provider.stage}.region}:${self:custom.${self:provider.stage}.account}:stateMachine:omni-eventing-sns-publish-state-machine-${self:provider.stage}

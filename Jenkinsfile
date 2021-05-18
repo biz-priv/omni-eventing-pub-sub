@@ -46,11 +46,11 @@ pipeline {
         stage('Code Deploy'){
             when {
                 anyOf {
-                    branch 'master';
-                    branch 'develop';
                     branch 'devint';
+                    branch 'develop';
+                    branch 'feature/*';
                     branch 'bugfix/*';
-                    branch 'feature/*'
+                    branch 'master'
                 }
                 expression {
                     return true;
@@ -64,7 +64,6 @@ pipeline {
                     serverless --version
                     echo ${env.ALIAS_VERSION}
                     sls deploy -s ${env.ENVIRONMENT} --alias ${env.ALIAS_VERSION}
-                    sls s3deploy --stage ${env.ENVIRONMENT} --alias ${env.ALIAS_VERSION}
                     """
                 }
             }
