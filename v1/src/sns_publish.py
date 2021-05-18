@@ -12,7 +12,7 @@ from pandas import read_csv, merge, DataFrame
 import psycopg2
 
 def handler(event, context):
-    LOGGER.info("Event %s", json.dumps(event))
+    LOGGER.info(event)
     if 'existing' not in event:
         try:
             bucket = event['Records'][0]['s3']['bucket']['name']
@@ -78,11 +78,6 @@ def get_events_json_shipments(dataframe):
         LOGGER.info("shipment-info")
         raw_data = (dataframe.dropna(subset=['bill_to_nbr'])).fillna(value='NA')
         raw_data['bill_to_nbr'] = raw_data['bill_to_nbr'].str.strip()
-        raw_data = raw_data.rename({'current_status': 'order_status'}, axis=1)
-        order_status_list = raw_data.order_status.unique()
-        order_status_list = tuple([i.strip() for i in order_status_list])
-        order_status_x12_ref_df = get_x12_codes(order_status_list)
-        raw_data = merge_rawdata_with_x12codes(raw_data, order_status_x12_ref_df)
         old_data = raw_data.loc[raw_data['record_type'] == 'OLD']
         old_file_nbrs = list(old_data.file_nbr.unique())
         changed_data = raw_data.loc[raw_data['record_type'] == 'NEW']
@@ -116,6 +111,10 @@ def get_events_json_shipments(dataframe):
         full_payload['SNS_FLAG'] = 'FULL'
         json_obj = json.loads(final_diff.apply(lambda x: [x.dropna()], axis=1).to_json())
         json_obj_full = json.loads(full_payload.to_json(orient='records'))
+        LOGGER.info("json_obj_full")
+        LOGGER.info(json_obj_full)
+        LOGGER.info("json_obj")
+        LOGGER.info(json_obj)
         return json_obj, json_obj_full
     except Exception as shipment_info_json_error:
         logging.exception("ShipmentInfoJSONError:  %s", shipment_info_json_error)

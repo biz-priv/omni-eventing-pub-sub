@@ -9,7 +9,6 @@ function:
     - '**/*'
     include:
     - ${self:custom.alias}/src/datapipeline_shipment_diff.py
-
   environment:
     DBNAME: ${ssm:/omni-dw/${self:provider.stage}/db/name}
     USER: ${ssm:/omni-dw/${self:provider.stage}/db/user~true}
