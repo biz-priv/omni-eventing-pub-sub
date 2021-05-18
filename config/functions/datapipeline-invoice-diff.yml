@@ -1,6 +1,6 @@
 function:
-  name: ${self:service}-diff-pipeline-invoice-${self:service}
   handler: ${self:custom.alias}/src/datapipeline_invoice_diff.handler
+  name: ${self:service}-diff-pipeline-invoice-${self:provider.stage}
   events:
     - sns: 
         arn: ${ssm:/omni/${self:provider.stage}/eventing/sns/diff-data-pipeline/invoice/arn}

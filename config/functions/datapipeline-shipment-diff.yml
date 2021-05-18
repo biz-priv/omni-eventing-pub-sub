@@ -1,6 +1,6 @@
 function:
-  name: ${self:service}-diff-pipeline-${self:service}
-  handler: ${self:custom.alias}/src/datapipeline_diff.handler
+  name: ${self:service}-diff-pipeline-shipment-${self:provider.stage}
+  handler: ${self:custom.alias}/src/datapipeline_shipment_diff.handler
   events:
     - sns: 
         arn: ${ssm:/omni/${self:provider.stage}/eventing/sns/diff-data-pipeline/shipment/arn}
@@ -8,8 +8,7 @@ function:
     exclude:
     - '**/*'
     include:
-    - ${self:custom.alias}/src/datapipeline_diff.py
-
+    - ${self:custom.alias}/src/datapipeline_shipment_diff.py
   environment:
     DBNAME: ${ssm:/omni-dw/${self:provider.stage}/db/name}
     USER: ${ssm:/omni-dw/${self:provider.stage}/db/user~true}

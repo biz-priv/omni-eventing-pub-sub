@@ -20,7 +20,7 @@ def handler(event, context):
         except Exception as read_error:
             logging.exception("EventObjectNameFetchError: %s", read_error)
         end = '-diff.csv000'
-        event_topic = ((key.split("/"+os.environ['STAGE']+"-"))[1].split(end)[0])
+        event_topic = ((key.split("/"+os.environ['stage']+"-"))[1].split(end)[0])
         dataframe = get_s3_object(bucket, key)
         if 'shipment-info' in event_topic:
             diff_payload, full_payload = get_events_json_shipments(dataframe)
