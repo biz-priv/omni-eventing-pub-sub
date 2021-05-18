@@ -22,10 +22,12 @@ provider:
     Version: "1.0"
     Environment: ${self:provider.stage}
 
-
 custom: 
   alias: ${opt:alias, 'v1'}
   dev:
+    account: "332281781429"
+    region: "us-east-1"
+  devint:
     account: "332281781429"
     region: "us-east-1"
   prod:
@@ -56,11 +58,11 @@ plugins:
   - serverless-step-functions
   - serverless-pseudo-parameters
   - serverless-aws-alias
-  - serverless-plugin-existing-s3
+  # - serverless-plugin-existing-s3
 package:
   individually: true
   exclude:
-  - serverless.yaml
+  - serverless.yaml 
 
 functions:
   create-subscription: ${file(config/functions/create-subscription.yml):function}
