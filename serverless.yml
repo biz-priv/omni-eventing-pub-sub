@@ -4,13 +4,13 @@ provider:
   name: aws
   runtime: python3.7
   versionFunctions: true
-  stage: ${opt:stage, 'dev'}  
+  stage: ${opt:stage, 'dev'}
   region: us-east-1
   timeout: 30
   memorySize: 256
   deploymentBucket: ${ssm:/omni-dw/${self:provider.stage}/sls/deployment/bucket}
   role: ${ssm:/omni-dw/${self:provider.stage}/lambda/role}
-  apiName: ${self:service}-api-${self:provider.stage}  
+  apiName: ${self:service}-api-${self:provider.stage}
   vpc:
     securityGroupIds:
       - ${ssm:/omni-dw/${self:provider.stage}/lambda/sgId}
@@ -22,13 +22,13 @@ provider:
     Version: "1.0"
     Environment: ${self:provider.stage}
 
-custom: 
+custom:
   alias: ${opt:alias, 'v1'}
   dev:
-    account: "332281781429"
+    account: "083868342691"
     region: "us-east-1"
   devint:
-    account: "332281781429"
+    account: "083868342691"
     region: "us-east-1"
   prod:
     account: "332281781429"
@@ -47,9 +47,9 @@ custom:
       - sns-publish
     dependenciesPath: ./requirements.txt
   standardResponseHeaders:
-    'Access-Control-Allow-Origin': "'*'"
-    'Access-Control-Allow-Credentials': "'true'"
-    'Access-Control-Allow-Headers': "'*'"
+    "Access-Control-Allow-Origin": "'*'"
+    "Access-Control-Allow-Credentials": "'true'"
+    "Access-Control-Allow-Headers": "'*'"
 
 plugins:
   - serverless-layers
@@ -62,7 +62,7 @@ plugins:
 package:
   individually: true
   exclude:
-  - serverless.yaml 
+    - serverless.yaml
 
 functions:
   create-subscription: ${file(config/functions/create-subscription.yml):function}
@@ -71,7 +71,7 @@ functions:
   datapipeline-shipment-diff: ${file(config/functions/datapipeline-shipment-diff.yml):function}
   create-sns-topics: ${file(config/functions/create-sns-topics.yml):function}
   delete-subscription: ${file(config/functions/delete-subscription.yml):function}
-  sns-publish: ${file(config/functions/sns-publish.yml):function}
+  sns-publish: ${file(config/functions/sns-publish-js.yml):function}
   s3-event: ${file(config/functions/s3-event.yml):function}
   datapipeline-invoice-diff: ${file(config/functions/datapipeline-invoice-diff.yml):function}
   datapipeline-milestone-diff: ${file(config/functions/datapipeline-milestone-diff.yml):function}
