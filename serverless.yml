@@ -4,7 +4,7 @@ provider:
   name: aws
   runtime: python3.7
   versionFunctions: true
-  stage: ${opt:stage, 'dev'}
+  stage: ${opt:stage, 'devint'}
   region: us-east-1
   timeout: 30
   memorySize: 256
@@ -25,7 +25,7 @@ provider:
 custom:
   alias: ${opt:alias, 'v1'}
   dev:
-    account: "083868342691"
+    account: "332281781429"
     region: "us-east-1"
   devint:
     account: "083868342691"
