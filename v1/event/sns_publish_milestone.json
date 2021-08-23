@@ -1,0 +1,12 @@
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": { "name": "dw-ps-replica-devint" },
+        "object": {
+          "key": "devint-eventing-diff/devint-shipment-milestone-diff.csv000"
+        }
+      }
+    }
+  ]
+}
