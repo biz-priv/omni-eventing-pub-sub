@@ -1,0 +1,43 @@
+function:
+  handler: ${self:custom.alias}/src/sns_publish_js.handler
+  runtime: nodejs12.x
+  name: ${self:service}-sns-publish-${self:provider.stage}
+  description: omni eventing publish sns events from s3 - ${self:provider.stage}
+  memorySize: 2048
+  timeout: 900
+  package:
+    include:
+      - v1/src/sns_publish_js.js
+      - node_modules/**
+    exclude:
+      - config/**
+      - dateutil/**
+      - lib/**
+      - numpy-1.20.1.dist-info/**
+      - numpy.libs/**
+      - pandas/**
+      - pandas-1.2.3.dist-info/**
+      - psycopg2/**
+      - python_dateutil-2.8.1.dist-info
+      - numpy/**
+      - pytz/**
+      - pytz-2021.1.dist-info/**
+      - six-1.15.0.dist-info/**
+      - ${self:custom.alias}/src/sns_publish.py
+      - ${self:custom.alias}/src/create_sns_topic.py
+      - ${self:custom.alias}/src/create_subscription.py
+      - ${self:custom.alias}/src/datapipeline_diff.py
+      - ${self:custom.alias}/src/delete_subscription.py
+      - ${self:custom.alias}/src/get_event_types.py
+      - ${self:custom.alias}/src/s3_event.py
+
+  environment:
+    BUCKET: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}
+    DBNAME: ${ssm:/omni-dw/${self:provider.stage}/db/name}
+    USER: ${ssm:/omni-dw/${self:provider.stage}/db/user~true}
+    HOST: ${ssm:/omni-dw/${self:provider.stage}/db/host~true}
+    PASS: ${ssm:/omni-dw/${self:provider.stage}/db/password~true}
+    CUSTOMER_PREFERENCE_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}
+    PORT: ${ssm:/omni-dw/${self:provider.stage}/db/port}
+    EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}
+    stage: ${self:provider.stage}
