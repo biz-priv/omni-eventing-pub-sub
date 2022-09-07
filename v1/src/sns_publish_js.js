@@ -14,6 +14,8 @@ module.exports.handler = async (event, context, callback) => {
     newOrders,
     snsEventType,
     unPublishedList;
+
+  console.log("event:::", event);
   try {
     bucket = event.Records[0].s3.bucket.name;
     key = event.Records[0].s3.object.key;
@@ -49,6 +51,7 @@ module.exports.handler = async (event, context, callback) => {
         }
         snsEventType = "CustomerInvoices";
       } else if (eventTopic.includes("shipment-milestone")) {
+        console.log("event:::", event);
         let eventData = await getEventsMilestones(jsonFromCsv);
         changedOldOrders = eventData.changedOldOrders;
         newOrders = eventData.newOrders;
@@ -89,7 +92,6 @@ module.exports.handler = async (event, context, callback) => {
         })
       );
       unPublishedList = mergedList.filter((e) => e.published == false);
-
       if (unPublishedList.length == 0) {
         event.end = "true";
       } else {
@@ -441,7 +443,8 @@ function snsPublish(item, snsEventType) {
         },
       };
       //SNS service
-      await sns.publish(params).promise();
+      const response = await sns.publish(params).promise();
+      console.log("SNS publish:::: ", response);
       resolve(1);
     } catch (error) {
       console.log("SNSPublishError: ", error);
