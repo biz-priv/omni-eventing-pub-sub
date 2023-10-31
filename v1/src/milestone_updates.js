@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 const sns = new AWS.SNS({ apiVersion: "2010-03-31" });
 const moment = require("moment-timezone");
+const _ = require("lodash")
 
 module.exports.handler = async (event, context) => {
   console.info("event:", JSON.stringify(event));
@@ -169,18 +170,18 @@ function mapStatusDescription(
   if (stopsequence === 1) {
     // If stop sequence is 1, map to shipper details
     eventDetails = {
-      eventCity: shipperDetails.ShipCity || "",
-      eventState: shipperDetails.FK_ShipState || "",
-      eventZip: shipperDetails.ShipZip || "",
-      eventCountryCode: shipperDetails.FK_ShipCountry || "",
+      eventCity: _.get(shipperDetails, "ShipCity",""),
+      eventState: _.get(shipperDetails,"FK_ShipState",""),
+      eventZip: _.get(shipperDetails,"ShipZip",""),
+      eventCountryCode: _.get(shipperDetails,"FK_ShipCountry",""),
     };
   } else if (stopsequence === 2) {
     // If stop sequence is 2, map to consignee details
     eventDetails = {
-      eventCity: consigneeDetails.ConCity || "",
-      eventState: consigneeDetails.FK_ConState || "",
-      eventZip: consigneeDetails.ConZip || "",
-      eventCountryCode: consigneeDetails.FK_ConCountry || "",
+      eventCity: _.get(consigneeDetails,"ConCity",""),
+      eventState: _.get(consigneeDetails,"FK_ConState",""),
+      eventZip: _.get(consigneeDetails,"ConZip",""),
+      eventCountryCode: _.get(consigneeDetails,"FK_ConCountry",""),
     };
   }
 
