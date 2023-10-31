@@ -75,6 +75,8 @@ functions:
   s3-event: ${file(config/functions/s3-event.yml):function}
   datapipeline-invoice-diff: ${file(config/functions/datapipeline-invoice-diff.yml):function}
   datapipeline-milestone-diff: ${file(config/functions/datapipeline-milestone-diff.yml):function}
+  milestone-updates: ${file(config/functions/milestone-updates.yml):function}
+  event-publish: ${file(config/functions/event-publish.yml):function}
 
 stepFunctions:
   stateMachines:
@@ -82,6 +84,9 @@ stepFunctions:
 
 resources:
   Resources:
+    #dynamodb table
+    MilestoneEventStatusTable: ${file(config/dynamoDB/milestoneEventStatusTable.yml):MilestoneEventStatusTable}
+
     BadRequestResponse:
       Type: 'AWS::ApiGateway::GatewayResponse'
       Properties:
