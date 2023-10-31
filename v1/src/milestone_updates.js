@@ -7,15 +7,13 @@ const moment = require("moment-timezone");
 module.exports.handler = async (event, context) => {
   console.info("event:", JSON.stringify(event));
   try {
-    // Use map to create an array of promises for processing each record
     const processingPromises = event.Records.map(async (record) => {
       const dynamodbRecord = record.dynamodb.NewImage;
       const payload = await processDynamoDBRecord(dynamodbRecord);
       console.info("payload:", JSON.stringify(payload));
       const data = replaceNull(payload);
       console.info("housebill", data.trackingNo);
-      let customerId;
-      customerId = await GetCustomer(data.trackingNo);
+      const customerId = await GetCustomer(data.trackingNo);
       console.info("customerId:", customerId);
       const deliveryStatus = "NO"; // Default status
       await saveToDynamoDB(data, customerId, deliveryStatus);

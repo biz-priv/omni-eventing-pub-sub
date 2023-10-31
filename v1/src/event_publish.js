@@ -57,10 +57,8 @@ async function getTopicArn(snsEventType) {
 
 async function snsPublish(item, snsEventType, customerId) {
   try {
-    const { newTopicArn } = await getTopicArn(snsEventType);
-    let TopicArn;
-    TopicArn = newTopicArn;
-    console.info(newTopicArn);
+    const { TopicArn } = await getTopicArn(snsEventType);
+    console.info("TopicArn:", TopicArn);
     const params = {
       Message: JSON.stringify(item),
       TopicArn,
