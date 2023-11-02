@@ -9,3 +9,5 @@ config/.DS_Store
 yarn.lock
 lib/node_modules
 lib/package-lock.json
+package-lock.json
+sample.json

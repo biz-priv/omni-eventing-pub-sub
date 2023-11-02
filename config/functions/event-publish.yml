@@ -1,0 +1,27 @@
+---
+function:
+  name: ${self:service}-event-publish-${self:provider.stage}
+  handler: ${self:custom.alias}/src/event_publish.handler
+  runtime: nodejs18.x
+  memorySize: 2048
+  timeout: 900
+  package:
+    exclude:
+      - "**/*"
+    include:
+      - ${self:custom.alias}/src/event_publish.js
+      - node_modules/**
+
+  events:
+    - stream:
+        type: dynamodb
+        arn:
+          Fn::GetAtt: [MilestoneEventStatusTable, StreamArn]
+        batchSize: 5
+        maximumRetryAttempts: 3
+        bisectBatchOnFunctionError: true
+
+  environment:
+    EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}
+    ERROR_SNS_ARN: ${ssm:/omni-reports/${self:provider.stage}/error-notification/sns/arn}
+    SHIPMENT_EVENT_STATUS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/event-status/table/name}
