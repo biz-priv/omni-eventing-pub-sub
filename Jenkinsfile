@@ -48,7 +48,6 @@ pipeline {
                 anyOf {
                     branch 'devint';
                     branch 'develop';
-                    branch 'feature/*';
                     branch 'bugfix/*';
                     branch 'master'
                 }
@@ -59,7 +58,7 @@ pipeline {
             steps {
                 withAWS(credentials: 'omni-aws-creds'){
                     sh """
-                    npm i serverless@1.34.0
+                    npm i serverless@2.11.1
                     npm i
                     serverless --version
                     echo ${env.ALIAS_VERSION}
