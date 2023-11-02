@@ -2,7 +2,7 @@
 function:
   name: ${self:service}-event-publish-${self:provider.stage}
   handler: ${self:custom.alias}/src/event_publish.handler
-  runtime: nodejs18.x
+  runtime: nodejs16.x
   memorySize: 2048
   timeout: 900
   package:

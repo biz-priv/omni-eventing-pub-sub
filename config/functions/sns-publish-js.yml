@@ -1,6 +1,6 @@
 function:
   handler: ${self:custom.alias}/src/sns_publish_js.handler
-  runtime: nodejs18.x
+  runtime: nodejs16.x
   name: ${self:service}-sns-publish-${self:provider.stage}
   description: omni eventing publish sns events from s3 - ${self:provider.stage}
   memorySize: 2048
