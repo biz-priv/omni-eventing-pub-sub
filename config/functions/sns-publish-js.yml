@@ -6,11 +6,11 @@ function:
   memorySize: 2048
   timeout: 900
   package:
-    include:
-      - v1/src/sns_publish_js.js
-      - node_modules/**
     exclude:
-    - '**/*'
+    - '**/*'  
+    include:
+    - v1/src/sns_publish_js.js
+    - node_modules/**
 
   environment:
     BUCKET: ${ssm:/omni-dw/${self:provider.stage}/s3/eventing/publish/bucket}
