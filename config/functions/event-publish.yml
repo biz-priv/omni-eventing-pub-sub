@@ -4,21 +4,22 @@ function:
   handler: ${self:custom.alias}/src/event_publish.handler
   runtime: nodejs18.x
   memorySize: 2048
-  timeout: 900  
+  timeout: 900
   package:
     exclude:
-    - '**/*'
+      - "**/*"
     include:
-    - ${self:custom.alias}/src/event_publish.js
-    - node_modules/**  
+      - ${self:custom.alias}/src/event_publish.js
+      - node_modules/**
 
   events:
     - stream:
         type: dynamodb
         arn:
           Fn::GetAtt: [MilestoneEventStatusTable, StreamArn]
-        filterPatterns:
-          - eventName: [INSERT]
+        batchSize: 5
+        maximumRetryAttempts: 3
+        bisectBatchOnFunctionError: true
 
   environment:
     EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}

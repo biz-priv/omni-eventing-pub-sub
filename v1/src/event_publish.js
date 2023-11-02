@@ -1,37 +1,28 @@
 const AWS = require("aws-sdk");
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 const sns = new AWS.SNS({ apiVersion: "2010-03-31" });
+const _ = require("lodash");
+
 
 module.exports.handler = async (event, context) => {
   try {
     console.info("event:", JSON.stringify(event));
-    // Use map to create an array of promises for processing each record
     const processingPromises = event.Records.map(async (record) => {
-      if (record.eventName === "INSERT") {
-        // Extract the new record data
-        const newImage = AWS.DynamoDB.Converter.unmarshall(
-          record.dynamodb.NewImage
-        );
-        // Parse the stringified payload into a JSON object
-        const payload = JSON.parse(newImage.payload);
-        // Deliver the message
-        await snsPublish(payload, "ShipmentAndMilestone", newImage.customerId);
-        // Update the message status to "Delivered" in DynamoDB
-        await updateDeliveryStatus(newImage.id, "Delivered");
+      const newImage = AWS.DynamoDB.Converter.unmarshall(
+        record.dynamodb.NewImage
+      );
+      if (_.get(newImage, "deliveryStatus", "") === "Pending") {
+        const payload = JSON.parse(_.get(newImage, "payload"));
+        await processAndDeliverMessage(payload, _.get(newImage, "customerId"));
+        await updateMessageStatus(_.get(newImage, "id"), "Delivered");
       }
       return "Success";
     });
     await Promise.all(processingPromises);
   } catch (error) {
-    // Send a notification to the SNS topic
     const message = `An error occurred in function ${context.functionName}. Error details: ${error}.`;
     const subject = `Lambda function ${context.functionName} has failed.`;
-    const snsParams = {
-      Message: message,
-      Subject: subject,
-      TopicArn: process.env.ERROR_SNS_ARN,
-    };
-    await sns.publish(snsParams).promise();
+    await sendSNSNotification(message, subject);
     console.error(error);
   }
 };
@@ -45,9 +36,8 @@ async function getTopicArn(snsEventType) {
       TableName: process.env.EVENTING_TOPICS_TABLE,
     };
     const response = await dynamoDB.get(params).promise();
-
     return {
-      newTopicArn: response.Item.Full_Payload_Topic_Arn,
+      TopicArn: response.Item.Full_Payload_Topic_Arn,
     };
   } catch (error) {
     console.error(error);
@@ -55,9 +45,9 @@ async function getTopicArn(snsEventType) {
   }
 }
 
-async function snsPublish(item, snsEventType, customerId) {
+async function processAndDeliverMessage(item, customerId) {
   try {
-    const { TopicArn } = await getTopicArn(snsEventType);
+    const { TopicArn } = await getTopicArn("ShipmentAndMilestone");
     console.info("TopicArn:", TopicArn);
     const params = {
       Message: JSON.stringify(item),
@@ -69,7 +59,6 @@ async function snsPublish(item, snsEventType, customerId) {
         },
       },
     };
-    //SNS service
     const response = await sns.publish(params).promise();
     console.info("SNS publish:::: ", response);
   } catch (error) {
@@ -78,7 +67,7 @@ async function snsPublish(item, snsEventType, customerId) {
   }
 }
 
-async function updateDeliveryStatus(id, status) {
+async function updateMessageStatus(id, status) {
   const params = {
     TableName: process.env.SHIPMENT_EVENT_STATUS_TABLE,
     Key: {
@@ -95,9 +84,18 @@ async function updateDeliveryStatus(id, status) {
 
   try {
     await dynamoDB.update(params).promise();
-    console.info("updated the status to delivered");
+    console.info("Updated the status to delivered");
   } catch (error) {
     console.error("Error updating message status:", error);
     throw error;
   }
+}
+
+async function sendSNSNotification(message, subject) {
+  const snsParams = {
+    Message: message,
+    Subject: subject,
+    TopicArn: process.env.ERROR_SNS_ARN,
+  };
+  await sns.publish(snsParams).promise();
 }

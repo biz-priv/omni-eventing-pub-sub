@@ -12,7 +12,11 @@ function:
     - ${self:custom.alias}/src/milestone_updates.js
     - node_modules/**  
   events:
-    - stream: ${ssm:/omni-wt-rt-updates/${self:provider.stage}/shipment-milestone/ddb.streamArn~true}
+    - stream: 
+        arn: ${ssm:/omni-wt-rt-updates/${self:provider.stage}/shipment-milestone/ddb.streamArn~true}
+        batchSize: 6
+        maximumRetryAttempts: 3    
+        bisectBatchOnFunctionError: true
 
   environment:
     SHIPMENT_HEADER_TABLE: ${ssm:/omni-wt-rt-updates/${self:provider.stage}/shipment-header/ddb.tableName~true}

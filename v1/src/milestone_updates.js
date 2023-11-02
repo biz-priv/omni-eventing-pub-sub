@@ -1,130 +1,10 @@
 const AWS = require("aws-sdk");
-const { v4: uuidv4 } = require("uuid");
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 const sns = new AWS.SNS({ apiVersion: "2010-03-31" });
 const moment = require("moment-timezone");
-const _ = require("lodash")
+const _ = require("lodash");
+const { v4: uuidv4 } = require("uuid");
 
-module.exports.handler = async (event, context) => {
-  console.info("event:", JSON.stringify(event));
-  try {
-    const processingPromises = event.Records.map(async (record) => {
-      const dynamodbRecord = record.dynamodb.NewImage;
-      const payload = await processDynamoDBRecord(dynamodbRecord);
-      console.info("payload:", JSON.stringify(payload));
-      const data = replaceNull(payload);
-      console.info("housebill", data.trackingNo);
-      const customerId = await GetCustomer(data.trackingNo);
-      console.info("customerId:", customerId);
-      const deliveryStatus = "NO"; // Default status
-      await saveToDynamoDB(data, customerId, deliveryStatus);
-      return data;
-    });
-
-    // Use Promise.all to await all processing promises
-    const results = await Promise.all(processingPromises);
-
-    // Filter out any null results (skipped records)
-    const successfulResults = results.filter((result) => result !== null);
-
-    console.info("Successfully processed records:", successfulResults);
-  } catch (error) {
-    // Send a notification to the SNS topic
-    const errorMessage = `An error occurred in function ${context.functionName}. Error details: ${error}.`;
-
-    try {
-      await publishToSNS(errorMessage, context.functionName);
-    } catch (snsError) {
-      console.error("Error publishing to SNS:", snsError);
-    }
-    console.error(error);
-  }
-};
-
-async function publishToSNS(message, subject) {
-  const params = {
-    Message: message,
-    Subject: `Lambda function ${subject} has failed.`,
-    TopicArn: process.env.ERROR_SNS_ARN,
-  };
-
-  await sns.publish(params).promise();
-}
-
-async function processDynamoDBRecord(dynamodbRecord) {
-  try {
-    const Id = uuidv4();
-    let OrderNo, OrderStatusId, EventDateTime;
-    let shipperDetails, consigneeDetails;
-    let edd, housebill;
-
-    ({
-      FK_OrderNo: { S: OrderNo },
-      FK_OrderStatusId: { S: OrderStatusId },
-      EventDateTime: { S: EventDateTime },
-    } = dynamodbRecord);
-
-    // Query header details to get additional data
-    const headerDetails = await queryHeaderDetails(OrderNo);
-    edd = headerDetails.ETADateTime;
-    housebill = headerDetails.Housebill;
-
-    // Query shipper and consignee details
-    shipperDetails = await queryShipperDetails(OrderNo);
-    consigneeDetails = await queryConsigneeDetails(OrderNo);
-
-    const data = mapStatusDescription(OrderStatusId);
-    const stopsequence = data.statusDescription.stopSequence;
-    const result = mapStatusDescription(
-      OrderStatusId,
-      stopsequence,
-      shipperDetails,
-      consigneeDetails
-    );
-
-    const statusdescription = result.statusDescription.description;
-    const eventcity = result.eventDetails.eventCity;
-    const eventstate = result.eventDetails.eventState;
-    const eventzip = result.eventDetails.eventZip;
-    const eventcountry = result.eventDetails.eventCountryCode;
-    console.info("stopsequence:", stopsequence);
-
-    console.info("statusDescription:", statusdescription);
-    if (edd == "1900-01-01 00:00:00.000") {
-      edd = null;
-    }
-    const payload = {
-      id: Id,
-      trackingNo: housebill,
-      carrier: shipperDetails.ShipName,
-      statusCode: OrderStatusId,
-      lastUpdateDate: EventDateTime,
-      estimatedDeliveryDate: edd,
-      identifier: "NA", // not required
-      eventCity: eventcity,
-      eventState: eventstate,
-      eventZip: eventzip,
-      eventCountryCode: eventcountry,
-      retailerMoniker: "dell", // default value
-      statusDescription: statusdescription,
-      originCity: shipperDetails.ShipCity,
-      originState: shipperDetails.FK_ShipState,
-      originZip: shipperDetails.ShipZip,
-      originCountryCode: shipperDetails.FK_ShipCountry,
-      destCity: consigneeDetails.ConCity,
-      destState: consigneeDetails.FK_ConState,
-      destZip: consigneeDetails.ConZip,
-      destCountryCode: consigneeDetails.FK_ConCountry,
-    };
-
-    return payload;
-  } catch (error) {
-    console.error(`Error processing DynamoDB record: ${error.message}`);
-    throw error;
-  }
-}
-
-// Define the mapping of FK_OrderStatusId to statusDescription
 const statusMapping = {
   APU: { description: "PICK UP ATTEMPT", stopSequence: 1 },
   SER: { description: "SHIPMENT EN ROUTE", stopSequence: 1 },
@@ -153,43 +33,165 @@ const statusMapping = {
   ED: { description: "ESTIMATED DELIVERY", stopSequence: 2 },
 };
 
-function mapStatusDescription(
-  FK_OrderStatusId,
-  stopsequence,
-  shipperDetails,
-  consigneeDetails
-) {
-  // Default event details
-  let eventDetails = {
-    eventCity: "Unknown",
-    eventState: "Unknown",
-    eventZip: "Unknown",
-    eventCountryCode: "Unknown",
-  };
+module.exports.handler = async (event, context) => {
+  console.info("event:", JSON.stringify(event));
+  try {
+    await Promise.all(
+      event.Records.map(async (record) => {
+        const newImage = _.get(record, "dynamodb.NewImage");
 
-  if (stopsequence === 1) {
-    // If stop sequence is 1, map to shipper details
-    eventDetails = {
-      eventCity: _.get(shipperDetails, "ShipCity",""),
-      eventState: _.get(shipperDetails,"FK_ShipState",""),
-      eventZip: _.get(shipperDetails,"ShipZip",""),
-      eventCountryCode: _.get(shipperDetails,"FK_ShipCountry",""),
-    };
-  } else if (stopsequence === 2) {
-    // If stop sequence is 2, map to consignee details
-    eventDetails = {
-      eventCity: _.get(consigneeDetails,"ConCity",""),
-      eventState: _.get(consigneeDetails,"FK_ConState",""),
-      eventZip: _.get(consigneeDetails,"ConZip",""),
-      eventCountryCode: _.get(consigneeDetails,"FK_ConCountry",""),
-    };
+        // Check if ProcessState is equal to 'Not Processed'
+        if (_.get(newImage, "ProcessState.S", "") === "Not Processed") {
+          try {
+            // Update a column in the same table to set ProcessState as 'Pending'
+            await updateProcessState(newImage, "Pending");
+            const payload = await processDynamoDBRecord(newImage);
+            console.log("payload:",payload);
+            const customerId = await GetCustomer(_.get(payload, "trackingNo"));
+            await saveToDynamoDB(payload, customerId, "Pending"); // Default status as Pending
+            // Update a column in the same table to set ProcessState as 'Processed'
+            await updateProcessState(newImage, "Processed");
+          } catch (error) {
+            console.error(`Error processing record: ${error.message}`);
+            // Save the error message to SHIPMENT_EVENT_STATUS_TABLE with status "Error"
+            await saveToDynamoDB(
+              {
+                id: uuidv4(),
+                trackingNo: "No trackingNo",
+                InsertedTimeStamp: moment
+                  .tz("America/Chicago")
+                  .format("YYYY:MM:DD HH:mm:ss")
+                  .toString(),
+                deliveryStatus: "Error",
+                errorMessage: error,
+              },
+              "",
+              "Error"
+            );
+          }
+        }
+      })
+    );
+    console.info("The record is processed");
+  } catch (error) {
+    const errorMessage = `An error occurred in function ${context.functionName}. Error details: ${error}.`;
+    console.error(errorMessage);
+    try {
+      await publishToSNS(errorMessage, context.functionName);
+    } catch (snsError) {
+      console.error("Error publishing to SNS:", snsError);
+    }
+  }
+};
+
+async function updateProcessState(newImage, processState) {
+  const orderNo = _.get(newImage, "FK_OrderNo.S", "");
+  const orderStatusId = _.get(newImage, "FK_OrderStatusId.S", "");
+
+  if (!orderNo || !orderStatusId) {
+    throw new Error("Missing orderNo or orderStatusId in the newImage.");
   }
 
-  return {
-    statusDescription: statusMapping[FK_OrderStatusId] || "Unknown",
-    eventDetails: eventDetails,
+  const params = {
+    TableName: process.env.SHIPMENT_MILESTONE_TABLE,
+    Key: {
+      FK_OrderNo: orderNo,
+      FK_OrderStatusId: orderStatusId,
+    },
+    UpdateExpression: "SET ProcessState = :processState",
+    ExpressionAttributeValues: {
+      ":processState": processState,
+    },
   };
+
+  try {
+    await dynamoDB.update(params).promise();
+    console.info(`Updated the ProcessState to '${processState}'`);
+  } catch (error) {
+    console.error("Error updating ProcessState:", error.message);
+    throw error;
+  }
 }
+
+async function publishToSNS(message, subject) {
+  const params = {
+    Message: message,
+    Subject: `Lambda function ${subject} has failed.`,
+    TopicArn: process.env.ERROR_SNS_ARN,
+  };
+  try {
+    await sns.publish(params).promise();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function processDynamoDBRecord(dynamodbRecord) {
+  const {
+    FK_OrderNo: { S: OrderNo },
+    FK_OrderStatusId: { S: OrderStatusId },
+    EventDateTime: { S: EventDateTime },
+    UUid: { S: id },
+  } = dynamodbRecord;
+
+  const headerDetails = await queryHeaderDetails(OrderNo);
+  const { ETADateTime, Housebill } = headerDetails;
+
+  const shipperDetails = await queryShipperDetails(OrderNo);
+  const consigneeDetails = await queryConsigneeDetails(OrderNo);
+
+  if (
+    !OrderNo ||
+    !OrderStatusId ||
+    !EventDateTime ||
+    !Housebill ||
+    !shipperDetails ||
+    !consigneeDetails
+  ) {
+    console.error("One or more mandatory fields are missing in the payload");
+  }
+
+
+  const stopsequence = statusMapping[OrderStatusId] ? statusMapping[OrderStatusId].stopSequence : 2;
+  const statusInfo = statusMapping[OrderStatusId];
+
+  const payload = {
+    id: id,
+    trackingNo: Housebill,
+    carrier: _.get(shipperDetails, "ShipName", ""),
+    statusCode: OrderStatusId,
+    lastUpdateDate: EventDateTime,
+    estimatedDeliveryDate:
+      ETADateTime === "1900-01-01 00:00:00.000" ? "NA" : ETADateTime,
+    identifier: "NA",
+    statusDescription: _.get(statusInfo, "description"),
+    retailerMoniker: "dell",
+    originCity: _.get(shipperDetails, "ShipCity", ""),
+    originState: _.get(shipperDetails, "FK_ShipState", ""),
+    originZip: _.get(shipperDetails, "ShipZip", ""),
+    originCountryCode: _.get(shipperDetails, "FK_ShipCountry", ""),
+    destCity: _.get(consigneeDetails, "ConCity", ""),
+    destState: _.get(consigneeDetails, "FK_ConState", ""),
+    destZip: _.get(consigneeDetails, "ConZip", ""),
+    destCountryCode: _.get(consigneeDetails, "FK_ConCountry", ""),
+  };
+  
+  if (stopsequence === 1) {
+    payload.eventCity = _.get(shipperDetails, "ShipCity", "Unknown");
+    payload.eventState = _.get(shipperDetails, "FK_ShipState", "Unknown");
+    payload.eventZip = _.get(shipperDetails, "ShipZip", "Unknown");
+    payload.eventCountryCode = _.get(shipperDetails, "FK_ShipCountry", "Unknown");
+  } else if (stopsequence === 2) {
+    payload.eventCity = _.get(consigneeDetails, "ConCity", "Unknown");
+    payload.eventState = _.get(consigneeDetails, "FK_ConState", "Unknown");
+    payload.eventZip = _.get(consigneeDetails, "ConZip", "Unknown");
+    payload.eventCountryCode = _.get(consigneeDetails, "FK_ConCountry", "Unknown");
+  }
+  
+
+  return payload;
+}
+
 
 async function queryShipperDetails(OrderNo) {
   const params = {
@@ -201,10 +203,11 @@ async function queryShipperDetails(OrderNo) {
   };
   try {
     const result = await dynamoDB.query(params).promise();
-    return result.Items[0] || {};
+    if (_.get(result, "Items", []).length > 0) {
+      return result.Items[0];
+    }
   } catch (error) {
     console.error("Error querying shipper details:", error.message);
-    throw error;
   }
 }
 
@@ -218,10 +221,11 @@ async function queryConsigneeDetails(OrderNo) {
   };
   try {
     const result = await dynamoDB.query(params).promise();
-    return result.Items[0] || {};
+    if (_.get(result, "Items", []).length > 0) {
+      return result.Items[0];
+    }
   } catch (error) {
     console.error("Error querying consignee details:", error.message);
-    throw error;
   }
 }
 
@@ -235,10 +239,11 @@ async function queryHeaderDetails(OrderNo) {
   };
   try {
     const result = await dynamoDB.query(params).promise();
-    return result.Items[0] || {};
+    if (_.get(result, "Items", []).length > 0) {
+      return result.Items[0];
+    }
   } catch (error) {
     console.error("Error querying header details:", error.message);
-    throw error;
   }
 }
 
@@ -254,7 +259,7 @@ async function GetCustomer(housebill) {
 
   try {
     const data = await dynamoDB.query(params).promise();
-    if (data.Items && data.Items.length > 0) {
+    if (_.get(data, "Items", []).length > 0) {
       return data.Items[0].CustomerID;
     } else {
       throw new Error(
@@ -265,17 +270,6 @@ async function GetCustomer(housebill) {
     console.error("Validation error:", error);
     throw error;
   }
-}
-
-function replaceNull(data) {
-  return JSON.parse(
-    JSON.stringify(data, (key, value) => {
-      if (value === null || value === "") {
-        return "NA";
-      }
-      return value;
-    })
-  );
 }
 
 async function saveToDynamoDB(payload, customerId, deliveryStatus) {
@@ -298,6 +292,5 @@ async function saveToDynamoDB(payload, customerId, deliveryStatus) {
     await dynamoDB.put(params).promise();
   } catch (error) {
     console.error("Error saving to DynamoDB:", error);
-    throw error;
   }
 }
