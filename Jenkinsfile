@@ -48,7 +48,6 @@ pipeline {
                 anyOf {
                     branch 'devint';
                     branch 'develop';
-                    branch 'feature/*';
                     branch 'bugfix/*';
                     branch 'master'
                 }
