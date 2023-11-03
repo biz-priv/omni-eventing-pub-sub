@@ -58,8 +58,8 @@ pipeline {
             steps {
                 withAWS(credentials: 'omni-aws-creds'){
                     sh """
-                    npm i serverless@2.11.1
-                    npm i
+                    npm i serverless@2.11.1 --legacy-peer-deps
+                    npm i --legacy-peer-deps
                     serverless --version
                     echo ${env.ALIAS_VERSION}
                     sls deploy -s ${env.ENVIRONMENT} --alias ${env.ALIAS_VERSION}
