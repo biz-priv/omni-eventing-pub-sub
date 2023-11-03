@@ -20,11 +20,11 @@
     "serverless": "2.11.1",
     "serverless-add-api-key": "^4.2.0",
     "serverless-aws-alias": "^1.8.0",
-    "serverless-layers": "^2.3.3",
     "serverless-plugin-existing-s3": "^2.4.0",
     "serverless-plugin-multiple-responses": "^1.0.0",
     "serverless-pseudo-parameters": "^2.5.0",
-    "serverless-step-functions": "^2.29.0"
+    "serverless-step-functions": "^2.29.0",
+    "serverless-python-requirements": "^6.0.0"  
   },
   "dependencies": {
     "aws-sdk": "^2.945.0",
