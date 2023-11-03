@@ -3,6 +3,8 @@ function:
   handler: ${self:custom.alias}/src/delete_subscription.handler
   name: ${self:service}-delete-subscription-${self:provider.stage}
   description: delete subscription Webhook API - ${self:provider.stage}
+  layers:
+    - Ref: PythonRequirementsLambdaLayer    
   events: 
     - http:  
         path: /webhook
