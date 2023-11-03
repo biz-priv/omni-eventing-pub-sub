@@ -4,8 +4,8 @@ function:
   description: omni eventing trigger state machine - events from s3 - ${self:provider.stage}
   memorySize: 2048
   timeout: 900
-  layers:
-    - Ref: PythonRequirementsLambdaLayer    
+  # layers:
+  #   - Ref: PythonRequirementsLambdaLayer    
   package:
     exclude:
     - '**/*'

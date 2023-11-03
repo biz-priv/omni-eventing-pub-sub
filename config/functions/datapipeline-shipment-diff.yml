@@ -1,8 +1,8 @@
 function:
   name: ${self:service}-diff-pipeline-shipment-${self:provider.stage}
   handler: ${self:custom.alias}/src/datapipeline_shipment_diff.handler
-  layers:
-    - Ref: PythonRequirementsLambdaLayer    
+  # layers:
+  #   - Ref: PythonRequirementsLambdaLayer    
   events:
     - sns: 
         arn: ${ssm:/omni/${self:provider.stage}/eventing/sns/diff-data-pipeline/shipment/arn}
