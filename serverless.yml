@@ -47,7 +47,7 @@ custom:
   #     # - sns-publish
   #   dependenciesPath: ./requirements.txt
   pythonRequirements:
-    pythonBin: python3
+    # pythonBin: python3
     layer: true  
   standardResponseHeaders:
     "Access-Control-Allow-Origin": "'*'"
