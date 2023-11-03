@@ -34,25 +34,29 @@ custom:
     account: "332281781429"
     region: "us-east-1"
   apiKeys: ${file(config/${self:provider.stage}ApiKeys.yaml):keys}
-  serverless-layers:
-    functions:
-      - create-subscription
-      - custom-authorizer
-      - get-event-types
-      - datapipeline-shipment-diff
-      - datapipeline-invoice-diff
-      - datapipeline-milestone-diff
-      - create-sns-topics
-      - delete-subscription
-      # - sns-publish
-    dependenciesPath: ./requirements.txt
+  # serverless-layers:
+  #   functions:
+  #     - create-subscription
+  #     - custom-authorizer
+  #     - get-event-types
+  #     - datapipeline-shipment-diff
+  #     - datapipeline-invoice-diff
+  #     - datapipeline-milestone-diff
+  #     - create-sns-topics
+  #     - delete-subscription
+  #     # - sns-publish
+  #   dependenciesPath: ./requirements.txt
+  pythonRequirements:
+    pythonBin: python3
+    layer: true  
   standardResponseHeaders:
     "Access-Control-Allow-Origin": "'*'"
     "Access-Control-Allow-Credentials": "'true'"
     "Access-Control-Allow-Headers": "'*'"
 
 plugins:
-  - serverless-layers
+  # - serverless-layers
+  - serverless-python-requirements  
   - serverless-add-api-key
   - serverless-plugin-multiple-responses
   - serverless-step-functions
