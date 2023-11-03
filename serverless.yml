@@ -44,7 +44,7 @@ custom:
       - datapipeline-milestone-diff
       - create-sns-topics
       - delete-subscription
-      - sns-publish
+      # - sns-publish
     dependenciesPath: ./requirements.txt
   standardResponseHeaders:
     "Access-Control-Allow-Origin": "'*'"
