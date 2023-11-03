@@ -35,6 +35,25 @@ function:
     - '**/*'
     include:
     - ${self:custom.alias}/src/create_subscription.py
+    - __pycache__/**
+    - _pyrsistent_version.py
+    - attr/**
+    - attrs/**
+    - attrs-23.1.0.dist-info/**
+    - bin/**
+    - decorator-5.1.1.dist-info/**
+    - decorator.py
+    - jsonschema/**
+    - jsonschema-4.15.0.dist-info/**
+    - pvectorc.cpython-311-darwin.so
+    - pydash/**
+    - pydash-5.0.1.dist-info/**
+    - pyrsistent/**
+    - pyrsistent-0.20.0.dist-info/**
+    - typing_extensions-4.3.0.dist-info/**
+    - typing_extensions.py
+    - validators/**
+    - validators-0.20.0.dist-info/**    
   environment: 
     EVENTING_TOPICS_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/topics/table/name}
     CUSTOMER_PREFERENCE_TABLE: ${ssm:/omni/${self:provider.stage}/eventing/preferences/table/name}

@@ -46,9 +46,9 @@ custom:
   #     - delete-subscription
   #     # - sns-publish
   #   dependenciesPath: ./requirements.txt
-  pythonRequirements:
-    # pythonBin: python3
-    layer: true  
+  # pythonRequirements:
+  #   pythonBin: python3
+  #   layer: true  
   standardResponseHeaders:
     "Access-Control-Allow-Origin": "'*'"
     "Access-Control-Allow-Credentials": "'true'"
@@ -56,7 +56,7 @@ custom:
 
 plugins:
   # - serverless-layers
-  - serverless-python-requirements  
+  # - serverless-python-requirements  
   - serverless-add-api-key
   - serverless-plugin-multiple-responses
   - serverless-step-functions
