@@ -39,7 +39,12 @@ module.exports.handler = async (event, context) => {
     await Promise.all(
       event.Records.map(async (record) => {
         const newImage = _.get(record, "dynamodb.NewImage");
-
+        const statusId = _.get(newImage, "FK_OrderStatusId.S", "");
+        // Check if the orderStatusId is not in the statusMapping object
+        if (!_.has(statusMapping,statusId)) {
+          console.info(`Skipping execution for orderStatusId: ${statusId}`);
+          return;
+        }
         // Check if ProcessState is equal to 'Not Processed'
         if (_.get(newImage, "ProcessState.S", "") === "Not Processed") {
           try {
@@ -51,6 +56,7 @@ module.exports.handler = async (event, context) => {
             await saveToDynamoDB(payload, customerId, "Pending"); // Default status as Pending
             // Update a column in the same table to set ProcessState as 'Processed'
             await updateProcessState(newImage, "Processed");
+            console.info("The record is processed");
           } catch (error) {
             console.error(`Error processing record: ${error.message}`);
             // Save the error message to SHIPMENT_EVENT_STATUS_TABLE with status "Error"
@@ -72,7 +78,6 @@ module.exports.handler = async (event, context) => {
         }
       })
     );
-    console.info("The record is processed");
   } catch (error) {
     const errorMessage = `An error occurred in function ${context.functionName}. Error details: ${error}.`;
     console.error(errorMessage);
