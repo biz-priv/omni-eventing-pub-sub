@@ -40,9 +40,16 @@ module.exports.handler = async (event, context) => {
       event.Records.map(async (record) => {
         const newImage = _.get(record, "dynamodb.NewImage");
         const statusId = _.get(newImage, "FK_OrderStatusId.S", "");
+        const eventDateTime = _.get(newImage, "EventDateTime.S", "")
         // Check if the orderStatusId is not in the statusMapping object
-        if (!_.has(statusMapping,statusId)) {
+        if (!_.has(statusMapping, statusId)) {
           console.info(`Skipping execution for orderStatusId: ${statusId}`);
+          return;
+        }
+
+        // Skip processing if EventDateTime is "1900-01-01 00:00:00.000"
+        if (eventDateTime === "1900-01-01 00:00:00.000") {
+          console.info("Skipping record with EventDateTime of 1900-01-01 00:00:00.000");
           return;
         }
         // Check if ProcessState is equal to 'Not Processed'
@@ -51,14 +58,14 @@ module.exports.handler = async (event, context) => {
             // Update a column in the same table to set ProcessState as 'Pending'
             await updateProcessState(newImage, "Pending");
             const payload = await processDynamoDBRecord(newImage);
-            console.log("payload:",payload);
+            console.log("payload:", payload);
             const customerId = await GetCustomer(_.get(payload, "trackingNo"));
             await saveToDynamoDB(payload, customerId, "Pending"); // Default status as Pending
             // Update a column in the same table to set ProcessState as 'Processed'
             await updateProcessState(newImage, "Processed");
             console.info("The record is processed");
           } catch (error) {
-            console.error(`Error processing record: ${error.message}`);
+            console.error(`Error : ${error.message}`);
             // Save the error message to SHIPMENT_EVENT_STATUS_TABLE with status "Error"
             await saveToDynamoDB(
               {
@@ -132,69 +139,70 @@ async function publishToSNS(message, subject) {
 }
 
 async function processDynamoDBRecord(dynamodbRecord) {
-  const {
-    FK_OrderNo: { S: OrderNo },
-    FK_OrderStatusId: { S: OrderStatusId },
-    EventDateTime: { S: EventDateTime },
-    UUid: { S: id },
-  } = dynamodbRecord;
+  try {
+    const {
+      FK_OrderNo: { S: OrderNo },
+      FK_OrderStatusId: { S: OrderStatusId },
+      EventDateTime: { S: EventDateTime },
+      UUid: { S: id },
+    } = dynamodbRecord;
 
-  const headerDetails = await queryHeaderDetails(OrderNo);
-  const { ETADateTime, Housebill } = headerDetails;
+    const headerDetails = await queryHeaderDetails(OrderNo);
+    const { ETADateTime, Housebill } = headerDetails;
 
-  const shipperDetails = await queryShipperDetails(OrderNo);
-  const consigneeDetails = await queryConsigneeDetails(OrderNo);
+    const shipperDetails = await queryShipperDetails(OrderNo);
+    const consigneeDetails = await queryConsigneeDetails(OrderNo);
 
-  if (
-    !OrderNo ||
-    !OrderStatusId ||
-    !EventDateTime ||
-    !Housebill ||
-    !shipperDetails ||
-    !consigneeDetails
-  ) {
-    console.error("One or more mandatory fields are missing in the payload");
+    if (
+      !OrderNo ||
+      !OrderStatusId ||
+      !EventDateTime ||
+      !Housebill ||
+      !shipperDetails ||
+      !consigneeDetails
+    ) {
+      console.error("One or more mandatory fields are missing in the payload");
+    }
+
+    const stopsequence = statusMapping[OrderStatusId] ? statusMapping[OrderStatusId].stopSequence : 2;
+    const statusInfo = statusMapping[OrderStatusId];
+
+    const payload = {
+      id: id,
+      trackingNo: Housebill,
+      carrier: _.get(shipperDetails, "ShipName", ""),
+      statusCode: OrderStatusId,
+      lastUpdateDate: EventDateTime,
+      estimatedDeliveryDate:
+        ETADateTime === "1900-01-01 00:00:00.000" ? "NA" : ETADateTime,
+      identifier: "NA",
+      statusDescription: _.get(statusInfo, "description"),
+      retailerMoniker: "dell",
+      originCity: _.get(shipperDetails, "ShipCity", ""),
+      originState: _.get(shipperDetails, "FK_ShipState", ""),
+      originZip: _.get(shipperDetails, "ShipZip", ""),
+      originCountryCode: _.get(shipperDetails, "FK_ShipCountry", ""),
+      destCity: _.get(consigneeDetails, "ConCity", ""),
+      destState: _.get(consigneeDetails, "FK_ConState", ""),
+      destZip: _.get(consigneeDetails, "ConZip", ""),
+      destCountryCode: _.get(consigneeDetails, "FK_ConCountry", ""),
+    };
+
+    if (stopsequence === 1) {
+      payload.eventCity = _.get(shipperDetails, "ShipCity", "Unknown");
+      payload.eventState = _.get(shipperDetails, "FK_ShipState", "Unknown");
+      payload.eventZip = _.get(shipperDetails, "ShipZip", "Unknown");
+      payload.eventCountryCode = _.get(shipperDetails, "FK_ShipCountry", "Unknown");
+    } else if (stopsequence === 2) {
+      payload.eventCity = _.get(consigneeDetails, "ConCity", "Unknown");
+      payload.eventState = _.get(consigneeDetails, "FK_ConState", "Unknown");
+      payload.eventZip = _.get(consigneeDetails, "ConZip", "Unknown");
+      payload.eventCountryCode = _.get(consigneeDetails, "FK_ConCountry", "Unknown");
+    }
+    return payload;
+  } catch (error) {
+    console.error("Error processing DynamoDB record:", error);
   }
-
-
-  const stopsequence = statusMapping[OrderStatusId] ? statusMapping[OrderStatusId].stopSequence : 2;
-  const statusInfo = statusMapping[OrderStatusId];
-
-  const payload = {
-    id: id,
-    trackingNo: Housebill,
-    carrier: _.get(shipperDetails, "ShipName", ""),
-    statusCode: OrderStatusId,
-    lastUpdateDate: EventDateTime,
-    estimatedDeliveryDate:
-      ETADateTime === "1900-01-01 00:00:00.000" ? "NA" : ETADateTime,
-    identifier: "NA",
-    statusDescription: _.get(statusInfo, "description"),
-    retailerMoniker: "dell",
-    originCity: _.get(shipperDetails, "ShipCity", ""),
-    originState: _.get(shipperDetails, "FK_ShipState", ""),
-    originZip: _.get(shipperDetails, "ShipZip", ""),
-    originCountryCode: _.get(shipperDetails, "FK_ShipCountry", ""),
-    destCity: _.get(consigneeDetails, "ConCity", ""),
-    destState: _.get(consigneeDetails, "FK_ConState", ""),
-    destZip: _.get(consigneeDetails, "ConZip", ""),
-    destCountryCode: _.get(consigneeDetails, "FK_ConCountry", ""),
-  };
-  
-  if (stopsequence === 1) {
-    payload.eventCity = _.get(shipperDetails, "ShipCity", "Unknown");
-    payload.eventState = _.get(shipperDetails, "FK_ShipState", "Unknown");
-    payload.eventZip = _.get(shipperDetails, "ShipZip", "Unknown");
-    payload.eventCountryCode = _.get(shipperDetails, "FK_ShipCountry", "Unknown");
-  } else if (stopsequence === 2) {
-    payload.eventCity = _.get(consigneeDetails, "ConCity", "Unknown");
-    payload.eventState = _.get(consigneeDetails, "FK_ConState", "Unknown");
-    payload.eventZip = _.get(consigneeDetails, "ConZip", "Unknown");
-    payload.eventCountryCode = _.get(consigneeDetails, "FK_ConCountry", "Unknown");
-  }
-  
-
-  return payload;
 }
 
 
