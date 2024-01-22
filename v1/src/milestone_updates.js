@@ -4,6 +4,7 @@ const sns = new AWS.SNS({ apiVersion: "2010-03-31" });
 const moment = require("moment-timezone");
 const _ = require("lodash");
 const { v4: uuidv4 } = require("uuid");
+const Joi = require("joi")
 
 const statusMapping = {
   APU: { description: "PICK UP ATTEMPT", stopSequence: 1 },
@@ -40,7 +41,9 @@ module.exports.handler = async (event, context) => {
       event.Records.map(async (record) => {
         const newImage = _.get(record, "dynamodb.NewImage");
         const statusId = _.get(newImage, "FK_OrderStatusId.S", "");
-        const eventDateTime = _.get(newImage, "EventDateTime.S", "")
+        const eventDateTime = _.get(newImage, "EventDateTime.S", "");
+        const orderNo = _.get(newImage, "FK_OrderNo.S", "");
+
         // Check if the orderStatusId is not in the statusMapping object
         if (!_.has(statusMapping, statusId)) {
           console.info(`Skipping execution for orderStatusId: ${statusId}`);
@@ -58,9 +61,11 @@ module.exports.handler = async (event, context) => {
             // Update a column in the same table to set ProcessState as 'Pending'
             await updateProcessState(newImage, "Pending");
             const payload = await processDynamoDBRecord(newImage);
-            console.log("payload:", payload);
-            const customerId = await GetCustomer(_.get(payload, "trackingNo"));
-            await saveToDynamoDB(payload, customerId, "Pending"); // Default status as Pending
+
+            // Get all customer IDs based on the tracking number
+            const trackingNo = _.get(payload, "trackingNo");
+            const customerIds = await GetCustomer(trackingNo);
+            await saveToDynamoDB(payload, customerIds.join(), "Pending", orderNo);
             // Update a column in the same table to set ProcessState as 'Processed'
             await updateProcessState(newImage, "Processed");
             console.info("The record is processed");
@@ -70,6 +75,7 @@ module.exports.handler = async (event, context) => {
             await saveToDynamoDB(
               {
                 id: uuidv4(),
+                FK_OrderNo: orderNo,
                 trackingNo: "No trackingNo",
                 InsertedTimeStamp: moment
                   .tz("America/Chicago")
@@ -161,11 +167,36 @@ async function processDynamoDBRecord(dynamodbRecord) {
       !shipperDetails ||
       !consigneeDetails
     ) {
-      console.error("One or more mandatory fields are missing in the payload");
+      throw new Error("One or more mandatory fields are missing in the payload");
     }
 
     const stopsequence = statusMapping[OrderStatusId] ? statusMapping[OrderStatusId].stopSequence : 2;
     const statusInfo = statusMapping[OrderStatusId];
+
+    // Validate the payload using Joi
+    const schema = Joi.object({
+      id: Joi.string().required(),
+      trackingNo: Joi.string().required(),
+      carrier: Joi.string().required(),
+      statusCode: Joi.string().required(),
+      lastUpdateDate: Joi.string().required(),
+      estimatedDeliveryDate: Joi.string().required(),
+      identifier: Joi.string().required(),
+      statusDescription: Joi.string().required(),
+      retailerMoniker: Joi.string().required(),
+      originCity: Joi.string().required(),
+      originState: Joi.string().required(),
+      originZip: Joi.string().required(),
+      originCountryCode: Joi.string().required(),
+      destCity: Joi.string().required(),
+      destState: Joi.string().required(),
+      destZip: Joi.string().required(),
+      destCountryCode: Joi.string().required(),
+      eventCity: Joi.string().required(),
+      eventState: Joi.string().required(),
+      eventZip: Joi.string().required(),
+      eventCountryCode: Joi.string().required(),
+    });
 
     const payload = {
       id: id,
@@ -199,9 +230,18 @@ async function processDynamoDBRecord(dynamodbRecord) {
       payload.eventZip = _.get(consigneeDetails, "ConZip", "Unknown");
       payload.eventCountryCode = _.get(consigneeDetails, "FK_ConCountry", "Unknown");
     }
+
+    // Validate the payload against the schema
+    const validationResult = schema.validate(payload, { abortEarly: false });
+
+    if (_.get(validationResult, "error")) {
+      // Joi validation failed, throw an error with the details
+      throw new Error(`Payload validation error: ${_.get(validationResult, "error.message")}`);
+    }
     return payload;
   } catch (error) {
     console.error("Error processing DynamoDB record:", error);
+    throw error;
   }
 }
 
@@ -255,6 +295,9 @@ async function queryHeaderDetails(OrderNo) {
     if (_.get(result, "Items", []).length > 0) {
       return result.Items[0];
     }
+    else {
+      throw new Error(`No header details found for ${OrderNo}`);
+    }
   } catch (error) {
     console.error("Error querying header details:", error.message);
   }
@@ -273,7 +316,9 @@ async function GetCustomer(housebill) {
   try {
     const data = await dynamoDB.query(params).promise();
     if (_.get(data, "Items", []).length > 0) {
-      return data.Items[0].CustomerID;
+      // Extract an array of customer IDs from the DynamoDB objects
+      const customerIds = data.Items.map(item => item.CustomerID);
+      return customerIds;
     } else {
       throw new Error(
         `No CustomerID found for this ${housebill} in entitlements table`
@@ -285,11 +330,12 @@ async function GetCustomer(housebill) {
   }
 }
 
-async function saveToDynamoDB(payload, customerId, deliveryStatus) {
+async function saveToDynamoDB(payload, customerId, deliveryStatus, orderNo) {
   const params = {
     TableName: process.env.SHIPMENT_EVENT_STATUS_TABLE,
     Item: {
       id: payload.id,
+      FK_OrderNo: orderNo,
       trackingNo: payload.trackingNo,
       customerId: customerId,
       InsertedTimeStamp: moment
