@@ -8,15 +8,19 @@ module.exports.handler = async (event, context) => {
   try {
     console.info("event:", JSON.stringify(event));
     const processingPromises = event.Records.map(async (record) => {
-      const newImage = AWS.DynamoDB.Converter.unmarshall(
-        record.dynamodb.NewImage
-      );
-      if (_.get(newImage, "deliveryStatus", "") === "Pending") {
-        const payload = JSON.parse(_.get(newImage, "payload"));
-        await processAndDeliverMessage(payload, _.get(newImage, "customerId"));
-        await updateMessageStatus(_.get(newImage, "id"), "Delivered");
+      const newImage = AWS.DynamoDB.Converter.unmarshall(record.dynamodb.NewImage);
+      const deliveryStatus = _.get(newImage, 'deliveryStatus', '');
+
+      if (deliveryStatus === 'Pending') {
+        const payload = JSON.parse(_.get(newImage, 'payload'));
+        const customerIds = _.get(newImage, 'customerId', '').split(',');
+        // Using Promise.all to process all customerIds concurrently
+        await Promise.all(customerIds.map(async (customerId) => {
+          await processAndDeliverMessage(payload, customerId.trim());
+        }));
+        await updateMessageStatus(_.get(newImage, 'id'), 'Delivered');
       }
-      return "Success";
+      return 'Success';
     });
     await Promise.all(processingPromises);
   } catch (error) {
