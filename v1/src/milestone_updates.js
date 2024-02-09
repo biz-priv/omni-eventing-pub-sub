@@ -4,7 +4,7 @@ const sns = new AWS.SNS({ apiVersion: "2010-03-31" });
 const moment = require("moment-timezone");
 const _ = require("lodash");
 const { v4: uuidv4 } = require("uuid");
-const Joi = require("joi")
+const Joi = require("joi");
 
 const statusMapping = {
   APU: { description: "PICK UP ATTEMPT", stopSequence: 1 },
@@ -32,6 +32,10 @@ const statusMapping = {
   LOD: { description: "LOADED", stopSequence: 1 },
   DEL: { description: "DELIVERED", stopSequence: 2 },
   ED: { description: "ESTIMATED DELIVERY", stopSequence: 2 },
+  APD: { description: "DELIVERY APPOINTMENT SCHEDULED", stopSequence: 2 },
+  DAR: { description: "DELIVERY APPOINTMENT REQUESTED", stopSequence: 2 },
+  HAW: { description: "HELD AT WAREHOUSE", stopSequence: 2 },
+  DAS: { description: "DELIVERY APPOINTMENT SECURED", stopSequence: 2 },
 };
 
 module.exports.handler = async (event, context) => {
@@ -52,7 +56,9 @@ module.exports.handler = async (event, context) => {
 
         // Skip processing if EventDateTime is "1900-01-01 00:00:00.000"
         if (eventDateTime === "1900-01-01 00:00:00.000") {
-          console.info("Skipping record with EventDateTime of 1900-01-01 00:00:00.000");
+          console.info(
+            "Skipping record with EventDateTime of 1900-01-01 00:00:00.000"
+          );
           return;
         }
         // Check if ProcessState is equal to 'Not Processed'
@@ -65,7 +71,12 @@ module.exports.handler = async (event, context) => {
             // Get all customer IDs based on the tracking number
             const trackingNo = _.get(payload, "trackingNo");
             const customerIds = await GetCustomer(trackingNo);
-            await saveToDynamoDB(payload, customerIds.join(), "Pending", orderNo);
+            await saveToDynamoDB(
+              payload,
+              customerIds.join(),
+              "Pending",
+              orderNo
+            );
             // Update a column in the same table to set ProcessState as 'Processed'
             await updateProcessState(newImage, "Processed");
             console.info("The record is processed");
@@ -167,10 +178,14 @@ async function processDynamoDBRecord(dynamodbRecord) {
       !shipperDetails ||
       !consigneeDetails
     ) {
-      throw new Error("One or more mandatory fields are missing in the payload");
+      throw new Error(
+        "One or more mandatory fields are missing in the payload"
+      );
     }
 
-    const stopsequence = statusMapping[OrderStatusId] ? statusMapping[OrderStatusId].stopSequence : 2;
+    const stopsequence = statusMapping[OrderStatusId]
+      ? statusMapping[OrderStatusId].stopSequence
+      : 2;
     const statusInfo = statusMapping[OrderStatusId];
 
     // Validate the payload using Joi
@@ -223,12 +238,20 @@ async function processDynamoDBRecord(dynamodbRecord) {
       payload.eventCity = _.get(shipperDetails, "ShipCity", "Unknown");
       payload.eventState = _.get(shipperDetails, "FK_ShipState", "Unknown");
       payload.eventZip = _.get(shipperDetails, "ShipZip", "Unknown");
-      payload.eventCountryCode = _.get(shipperDetails, "FK_ShipCountry", "Unknown");
+      payload.eventCountryCode = _.get(
+        shipperDetails,
+        "FK_ShipCountry",
+        "Unknown"
+      );
     } else if (stopsequence === 2) {
       payload.eventCity = _.get(consigneeDetails, "ConCity", "Unknown");
       payload.eventState = _.get(consigneeDetails, "FK_ConState", "Unknown");
       payload.eventZip = _.get(consigneeDetails, "ConZip", "Unknown");
-      payload.eventCountryCode = _.get(consigneeDetails, "FK_ConCountry", "Unknown");
+      payload.eventCountryCode = _.get(
+        consigneeDetails,
+        "FK_ConCountry",
+        "Unknown"
+      );
     }
 
     // Validate the payload against the schema
@@ -236,7 +259,9 @@ async function processDynamoDBRecord(dynamodbRecord) {
 
     if (_.get(validationResult, "error")) {
       // Joi validation failed, throw an error with the details
-      throw new Error(`Payload validation error: ${_.get(validationResult, "error.message")}`);
+      throw new Error(
+        `Payload validation error: ${_.get(validationResult, "error.message")}`
+      );
     }
     return payload;
   } catch (error) {
@@ -244,7 +269,6 @@ async function processDynamoDBRecord(dynamodbRecord) {
     throw error;
   }
 }
-
 
 async function queryShipperDetails(OrderNo) {
   const params = {
@@ -294,8 +318,7 @@ async function queryHeaderDetails(OrderNo) {
     const result = await dynamoDB.query(params).promise();
     if (_.get(result, "Items", []).length > 0) {
       return result.Items[0];
-    }
-    else {
+    } else {
       throw new Error(`No header details found for ${OrderNo}`);
     }
   } catch (error) {
@@ -317,7 +340,7 @@ async function GetCustomer(housebill) {
     const data = await dynamoDB.query(params).promise();
     if (_.get(data, "Items", []).length > 0) {
       // Extract an array of customer IDs from the DynamoDB objects
-      const customerIds = data.Items.map(item => item.CustomerID);
+      const customerIds = data.Items.map((item) => item.CustomerID);
       return customerIds;
     } else {
       throw new Error(
