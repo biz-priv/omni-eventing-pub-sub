@@ -178,9 +178,7 @@ async function processDynamoDBRecord(dynamodbRecord) {
       !shipperDetails ||
       !consigneeDetails
     ) {
-      throw new Error(
-        "One or more mandatory fields are missing in the payload"
-      );
+      throw new Error("One or more mandatory fields are missing in the payload");
     }
 
     const stopsequence = statusMapping[OrderStatusId]
@@ -247,11 +245,7 @@ async function processDynamoDBRecord(dynamodbRecord) {
       payload.eventCity = _.get(consigneeDetails, "ConCity", "Unknown");
       payload.eventState = _.get(consigneeDetails, "FK_ConState", "Unknown");
       payload.eventZip = _.get(consigneeDetails, "ConZip", "Unknown");
-      payload.eventCountryCode = _.get(
-        consigneeDetails,
-        "FK_ConCountry",
-        "Unknown"
-      );
+      payload.eventCountryCode = _.get( consigneeDetails, "FK_ConCountry","Unknown");
     }
 
     // Validate the payload against the schema
@@ -369,7 +363,6 @@ async function saveToDynamoDB(payload, customerId, deliveryStatus, orderNo) {
       deliveryStatus: deliveryStatus,
     },
   };
-
   try {
     await dynamoDB.put(params).promise();
   } catch (error) {

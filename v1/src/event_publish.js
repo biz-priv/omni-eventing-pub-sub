@@ -10,7 +10,6 @@ module.exports.handler = async (event, context) => {
     const processingPromises = event.Records.map(async (record) => {
       const newImage = AWS.DynamoDB.Converter.unmarshall(record.dynamodb.NewImage);
       const deliveryStatus = _.get(newImage, 'deliveryStatus', '');
-
       if (deliveryStatus === 'Pending') {
         const payload = JSON.parse(_.get(newImage, 'payload'));
         const customerIds = _.get(newImage, 'customerId', '').split(',');
